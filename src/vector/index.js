@@ -70,6 +70,12 @@ import Platform from './platform';
 
 import MatrixClientPeg from 'matrix-react-sdk/lib/MatrixClientPeg';
 
+import acceptLanguage from 'accept-language';
+import { IntlProvider } from 'react-intl';
+
+acceptLanguage.languages(['en', 'pt-BR']);
+
+
 var lastLocationHashSet = null;
 
 var CallHandler = require("matrix-react-sdk/lib/CallHandler");
@@ -229,6 +235,11 @@ function onLoadCompleted() {
 }
 
 
+function detectLocale() {
+  return window.navigator.languages[0] || 'en';
+}
+
+
 async function loadApp() {
     const fragparts = parseQsFromFragment(window.location);
     const params = parseQs(window.location);
@@ -274,18 +285,20 @@ async function loadApp() {
 
         const MatrixChat = sdk.getComponent('structures.MatrixChat');
         window.matrixChat = ReactDOM.render(
-            <MatrixChat
-                onNewScreen={onNewScreen}
-                makeRegistrationUrl={makeRegistrationUrl}
-                ConferenceHandler={VectorConferenceHandler}
-                config={configJson}
-                realQueryParams={params}
-                startingFragmentQueryParams={fragparts.params}
-                enableGuest={true}
-                onLoadCompleted={onLoadCompleted}
-                initialScreenAfterLogin={getScreenFromLocation(window.location)}
-                defaultDeviceDisplayName={PlatformPeg.get().getDefaultDeviceDisplayName()}
-            />,
+            <IntlProvider locale={detectLocale()}>
+                <MatrixChat
+                    onNewScreen={onNewScreen}
+                    makeRegistrationUrl={makeRegistrationUrl}
+                    ConferenceHandler={VectorConferenceHandler}
+                    config={configJson}
+                    realQueryParams={params}
+                    startingFragmentQueryParams={fragparts.params}
+                    enableGuest={true}
+                    onLoadCompleted={onLoadCompleted}
+                    initialScreenAfterLogin={getScreenFromLocation(window.location)}
+                    defaultDeviceDisplayName={PlatformPeg.get().getDefaultDeviceDisplayName()}
+                />
+            </IntlProvider>,
             document.getElementById('matrixchat')
         );
     }

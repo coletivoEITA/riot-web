@@ -49,6 +49,7 @@
     "test-multi": "karma start"
   },
   "dependencies": {
+    "accept-language": "^3.0.15",
     "babel-polyfill": "^6.5.0",
     "babel-runtime": "^6.11.6",
     "browser-request": "^0.3.3",
@@ -71,6 +72,7 @@
     "react-dnd-html5-backend": "^2.1.2",
     "react-dom": "^15.4.0",
     "react-gemini-scrollbar": "matrix-org/react-gemini-scrollbar#5e97aef",
+    "react-intl": "^2.2.3",
     "sanitize-html": "^1.11.1",
     "ua-parser-js": "^0.7.10",
     "url": "^0.11.0"
