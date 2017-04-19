@@ -55,6 +55,11 @@ module.exports = React.createClass({
     },
 
     getInitialState: function() {
+
+        dis.dispatch({
+            action: 'hide_right_panel',
+        });        
+
         if (this.props.userId) {
             var member = new Matrix.RoomMember(null, this.props.userId);
             return {
