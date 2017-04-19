@@ -142,11 +142,11 @@ module.exports = React.createClass({
             );
         }
 
-        viewSourceButton = (
-            <div className="mx_MessageContextMenu_field" onClick={this.onViewSourceClick}>
-                View Source
-            </div>
-        );
+        // viewSourceButton = (
+        //     <div className="mx_MessageContextMenu_field" onClick={this.onViewSourceClick}>
+        //         View Source
+        //     </div>
+        // );
 
         if (this.props.mxEvent.getType() !== this.props.mxEvent.getWireType()) {
             viewClearSourceButton = (
@@ -167,12 +167,12 @@ module.exports = React.createClass({
         }
 
         // XXX: if we use room ID, we should also include a server where the event can be found (other than in the domain of the event ID)
-        permalinkButton = (
-            <div className="mx_MessageContextMenu_field">
-                <a href={ "https://matrix.to/#/" + this.props.mxEvent.getRoomId() +"/"+ this.props.mxEvent.getId() }
-                  target="_blank" rel="noopener" onClick={ this.closeMenu }>Permalink</a>
-            </div>
-        );
+        // permalinkButton = (
+        //     <div className="mx_MessageContextMenu_field">
+        //         <a href={ "https://matrix.to/#/" + this.props.mxEvent.getRoomId() +"/"+ this.props.mxEvent.getId() }
+        //           target="_blank" rel="noopener" onClick={ this.closeMenu }>Permalink</a>
+        //     </div>
+        // );
 
         const quoteButton = (
             <div className="mx_MessageContextMenu_field" onClick={this.onQuoteClick}>
