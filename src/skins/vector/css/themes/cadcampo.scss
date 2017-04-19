@@ -44,6 +44,10 @@
     display: none !important;
 }
 
+.mx_EventTile_avatar {
+    display: none;
+}
+
 /* hide settings */
 .mx_UserSettings_section.mx_DevicesPanel {
     display: none;
@@ -54,3 +58,4 @@
 .mx_UserSettings_advanced {
     display: none;
 }
+
