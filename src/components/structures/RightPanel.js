@@ -65,7 +65,7 @@ module.exports = React.createClass({
         }
         else {
             return {
-                phase: this.Phase.NotificationPanel
+                phase: this.Phase.MemberList
             }
         }
     },
@@ -198,6 +198,12 @@ module.exports = React.createClass({
         if (this.props.roomId) {
             buttonGroup =
                     <div className="mx_RightPanel_headerButtonGroup">
+                        <AccessibleButton className="mx_RightPanel_headerButton"
+                                title="Members" onClick={ this.onMemberListButtonClick }>
+                            <div className="mx_RightPanel_headerButton_badge">{ membersBadge ? membersBadge : <span>&nbsp;</span>}</div>
+                            <TintableSvg src="img/icons-people.svg" width="25" height="25"/>
+                            { membersHighlight }
+                        </AccessibleButton>                    
                         <AccessibleButton
                                 className="mx_RightPanel_headerButton mx_RightPanel_notificationbutton"
                                 title="Notifications" onClick={ this.onNotificationListButtonClick }>
@@ -212,13 +218,6 @@ module.exports = React.createClass({
                             <TintableSvg src="img/icons-files.svg" width="25" height="25"/>
                             { filesHighlight }
                         </AccessibleButton>
-                        <AccessibleButton className="mx_RightPanel_headerButton"
-                                title="Members" onClick={ this.onMemberListButtonClick }>
-                            <div className="mx_RightPanel_headerButton_badge">{ membersBadge ? membersBadge : <span>&nbsp;</span>}</div>
-                            <TintableSvg src="img/icons-people.svg" width="25" height="25"/>
-                            { membersHighlight }
-                        </AccessibleButton>
-
                         
                         <div className="mx_RightPanel_headerButton mx_RightPanel_collapsebutton" title="Hide panel" onClick={ this.onCollapseClick }>
                             <TintableSvg src="img/minimise.svg" width="10" height="16"/>
