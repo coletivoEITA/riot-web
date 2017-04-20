@@ -15,12 +15,17 @@
     display: none;
 }
 
-.mx_EventTile_line {
-    line-height: 18px;
+body, .mx_EventTile_line, .mx_EventTile, .mx_RightPanel_footer .mx_RightPanel_invite, .mx_MessageComposer_input textarea, .mx_EntityTile_name , .mx_EventTile_content , .mx_EventTile_content .markdown-body, .mx_MemberList_query::-moz-placeholder {
+    font-size: 13px !important;
 }
 
-.mx_EventTile {
-    font-size: 13px;
+body, .mx_EventTile_line, .mx_EventTile {
+    line-height: 18px !important;
+}
+
+.mx_EventTile_line {
+    padding-top: 0px;
+    padding-bottom: 0px;
 }
 
 .mx_SearchBox_search {
@@ -28,6 +33,10 @@
     border: 2px solid #ddd !important;
     margin-left: -33px;
     padding-left: 33px;
+}
+
+.mx_EventTile_redacted .mx_EventTile_line .mx_UnknownBody {
+    background-color: unset;
 }
 
 .mx_SearchBox_searchButton {
@@ -63,3 +72,50 @@
     display: none;
 }
 
+/* background colors */
+
+/*
+.mx_MatrixChat .mx_LeftPanel {
+    background-color: white;
+}
+
+.mx_MatrixChat_middlePanel , .mx_RoomView_statusArea {
+    background-color: #ececec !important;
+}
+
+.mx_MatrixChat .mx_MatrixChat_middlePanel {
+    padding-right: 0px;
+}
+
+.mx_RightPanel {
+    padding-left: 22px;   
+}
+
+.mx_RoomTile.mx_RoomTile_selected, .mx_RoomTile.mx_RoomTile_selected:hover {
+    background: #8789ae;
+}
+
+.mx_RoomTile_selected .mx_RoomTile_name {
+    color: white;
+}
+
+.mx_RoomTile:hover {
+    background: #ececec;
+}
+
+.mx_EventTile_line {
+    background-color: white;
+}
+
+.mx_EventTile:hover .mx_EventTile_line {
+    background-color: white;
+}
+
+.mx_RoomView .mx_MessageComposer {
+    background: white;
+}
+
+.mx_RoomHeader_rightRow {
+    background-color: unset;
+}
+*/
