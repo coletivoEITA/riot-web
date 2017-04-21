@@ -75,6 +75,7 @@ var lastLocationHashSet = null;
 var CallHandler = require("matrix-react-sdk/lib/CallHandler");
 CallHandler.setConferenceHandler(VectorConferenceHandler);
 
+var counterpart = require('counterpart');
 MatrixClientPeg.setIndexedDbWorkerScript(window.vector_indexeddb_worker_script);
 
 function checkBrowserFeatures(featureList) {
@@ -99,6 +100,14 @@ function checkBrowserFeatures(featureList) {
         }
     }
     return featureComplete;
+}
+
+function onAction(payload) {
+  switch (payload.action) {
+    case 'set_language':
+      counterpart.setLocale(payload.value);
+      break;
+  }
 }
 
 var validBrowser = checkBrowserFeatures([
@@ -287,6 +296,21 @@ async function loadApp() {
             />,
             document.getElementById('matrixchat')
         );
+        var localSettingsString = JSON.parse(localStorage.getItem('mx_local_settings') || '{}');
+        sdk.setLanguage(localSettingsString.language);
+        counterpart.registerTranslations('en-en', require('../i18n/en_EN'));
+        counterpart.registerTranslations('de-de', require('../i18n/de_DE'));
+        counterpart.registerTranslations('pt-br', require('../i18n/pt_BR'));
+        counterpart.setFallbackLocale('en');
+        dis.register(onAction);
+        if (Object.keys(localSettingsString).length === 0) {
+          const language = navigator.languages[0] || navigator.language || navigator.userLanguage;
+          counterpart.setLocale(language);
+          dis.dispatch({
+              action: 'set_language',
+              value: language,
+          });
+        }
     }
     else {
         console.error("Browser is missing required features.");
