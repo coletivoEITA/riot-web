@@ -27,8 +27,10 @@ var MatrixClientPeg = require('matrix-react-sdk/lib/MatrixClientPeg');
 var RoomNotifs = require('matrix-react-sdk/lib/RoomNotifs');
 var FormattingUtils = require('matrix-react-sdk/lib/utils/FormattingUtils');
 var AccessibleButton = require('matrix-react-sdk/lib/components/views/elements/AccessibleButton');
+var ConstantTimeDispatcher = require('matrix-react-sdk/lib/ConstantTimeDispatcher');
+var RoomSubListHeader = require('./RoomSubListHeader.js');
 
-// turn this on for drop & drag console debugging galore
+// turn this on for drag & drop console debugging galore
 var debug = false;
 
 const TRUNCATE_AT = 10;
@@ -71,14 +73,12 @@ var RoomSubList = React.createClass({
 
         order: React.PropTypes.string.isRequired,
 
-        // undefined if no room is selected (eg we are showing settings)
-        selectedRoom: React.PropTypes.string,
-
         startAsHidden: React.PropTypes.bool,
         showSpinner: React.PropTypes.bool, // true to show a spinner if 0 elements when expanded
         collapsed: React.PropTypes.bool.isRequired, // is LeftPanel collapsed?
         onHeaderClick: React.PropTypes.func,
         alwaysShowHeader: React.PropTypes.bool,
+        selectedRoom: React.PropTypes.string,
         incomingCall: React.PropTypes.object,
         onShowMoreRooms: React.PropTypes.func,
         searchFilter: React.PropTypes.string,
@@ -100,13 +100,31 @@ var RoomSubList = React.createClass({
     },
 
     componentWillMount: function() {
+        constantTimeDispatcher.register("RoomSubList.sort", this.props.tagName, this.onSort);
+        constantTimeDispatcher.register("RoomSubList.refreshHeader", this.props.tagName, this.onRefresh);
         this.sortList(this.applySearchFilter(this.props.list, this.props.searchFilter), this.props.order);
+        this._fixUndefinedOrder(this.props.list);
+    },
+
+    componentWillUnmount: function() {
+        constantTimeDispatcher.unregister("RoomSubList.sort", this.props.tagName, this.onSort);
+        constantTimeDispatcher.unregister("RoomSubList.refreshHeader", this.props.tagName, this.onRefresh);
     },
 
     componentWillReceiveProps: function(newProps) {
         // order the room list appropriately before we re-render
         //if (debug) console.log("received new props, list = " + newProps.list);
         this.sortList(this.applySearchFilter(newProps.list, newProps.searchFilter), newProps.order);
+        this._fixUndefinedOrder(newProps.list);
+    },
+
+    onSort: function() {
+        this.sortList(this.applySearchFilter(this.props.list, this.props.searchFilter), this.props.order);
+        // we deliberately don't waste time trying to fix undefined ordering here
+    },
+
+    onRefresh: function() {
+        this.forceUpdate();
     },
 
     applySearchFilter: function(list, filter) {
@@ -119,7 +137,7 @@ var RoomSubList = React.createClass({
     // The header is collapsable if it is hidden or not stuck
     // The dataset elements are added in the RoomList _initAndPositionStickyHeaders method
     isCollapsableOnClick: function() {
-        var stuck = this.refs.header.dataset.stuck;
+        var stuck = this.refs.header.refs.header.dataset.stuck;
         if (this.state.hidden || stuck === undefined || stuck === "none") {
             return true;
         } else {
@@ -142,14 +160,15 @@ var RoomSubList = React.createClass({
             this.props.onHeaderClick(isHidden);
         } else {
             // The header is stuck, so the click is to be interpreted as a scroll to the header
-            this.props.onHeaderClick(this.state.hidden, this.refs.header.dataset.originalPosition);
+            this.props.onHeaderClick(this.state.hidden, this.refs.header.refs.header.dataset.originalPosition);
         }
     },
 
-    onRoomTileClick(roomId) {
+    onRoomTileClick(roomId, ev) {
         dis.dispatch({
             action: 'view_room',
             room_id: roomId,
+            clear_search: (ev && (ev.keyCode == 13 || ev.keyCode == 32)),
         });
     },
 
@@ -211,9 +230,6 @@ var RoomSubList = React.createClass({
         if (order === "manual") comparator = this.manualComparator;
         if (order === "recent") comparator = this.recentsComparator;
 
-        // Fix undefined orders here, and make sure the backend gets updated as well
-        this._fixUndefinedOrder(list);
-
         //if (debug) console.log("sorting list for sublist " + this.props.label + " with length " + list.length + ", this.props.list = " + this.props.list);
         this.setState({ sortedList: list.sort(comparator) });
     },
@@ -248,10 +264,9 @@ var RoomSubList = React.createClass({
 
                 if (badges) {
                     result[0] += notificationCount;
-                    if (highlight) {
-                        result[1] = true;
-                    }
                 }
+
+                result[1] |= highlight;
             }
             return result;
         }, [0, false]);
@@ -359,7 +374,6 @@ var RoomSubList = React.createClass({
         var self = this;
         var DNDRoomTile = sdk.getComponent("rooms.DNDRoomTile");
         return this.state.sortedList.map(function(room) {
-            var selected = room.roomId == self.props.selectedRoom;
             // XXX: is it evil to pass in self as a prop to RoomTile?
             return (
                 <DNDRoomTile
@@ -367,9 +381,7 @@ var RoomSubList = React.createClass({
                     roomSubList={ self }
                     key={ room.roomId }
                     collapsed={ self.props.collapsed || false}
-                    selected={ selected }
-                    unread={ Unread.doesRoomHaveUnreadMessages(room) }
-                    highlight={ room.getUnreadNotificationCount('highlight') > 0 || self.props.label === 'Invites' }
+                    selectedRoom={ self.props.selectedRoom }
                     isInvite={ self.props.label === 'Invites' }
                     refreshSubList={ self._updateSubListCount }
                     incomingCall={ null }
@@ -501,7 +513,7 @@ var RoomSubList = React.createClass({
             // gets triggered and another list is passed in. Doing it one at a time means that
             // we always correctly calculate the highest order for the list - stops multiple
             // rooms getting the same order. This is only really relevant for the first time this
-            // is run with historical room tag data, after that there should only be undefined
+            // is run with historical room tag data, after that there should only be one undefined
             // in the list at a time anyway.
             for (let i = 0; i < list.length; i++) {
                 if (list[i].tags[self.props.tagName] && list[i].tags[self.props.tagName].order === undefined) {
@@ -535,6 +547,16 @@ var RoomSubList = React.createClass({
             target = <RoomDropTarget label={ 'Drop here to ' + this.props.verb }/>;
         }
 
+        var roomCount = this.props.list.length > 0 ? this.props.list.length : '';
+
+        var isIncomingCallRoom;
+        if (this.props.incomingCall) {
+            // Check if the incoming call is for this section
+            isIncomingCallRoom = this.props.list.find(room=>{
+                return this.props.incomingCall.roomId === room.roomId;
+            }) ? true : false;
+        }
+
         if (this.state.sortedList.length > 0 || this.props.editable) {
             var subList;
             var classes = "mx_RoomSubList";
@@ -553,7 +575,18 @@ var RoomSubList = React.createClass({
 
             return connectDropTarget(
                 <div>
-                    { this._getHeaderJsx() }
+                    <RoomSubListHeader
+                        ref='header'
+                        label={ this.props.label }
+                        tagName={ this.props.tagName }
+                        roomCount={ roomCount }
+                        collapsed={ this.props.collapsed }
+                        hidden={ this.state.hidden }
+                        isIncomingCallRoom={ isIncomingCallRoom }
+                        roomNotificationCount={ this.roomNotificationCount() }
+                        onClick={ this.onClick }
+                        onHeaderClick={ this.props.onHeaderClick }
+                    />
                     { subList }
                 </div>
             );
@@ -562,7 +595,20 @@ var RoomSubList = React.createClass({
             var Loader = sdk.getComponent("elements.Spinner");
             return (
                 <div className="mx_RoomSubList">
-                    { this.props.alwaysShowHeader ? this._getHeaderJsx() : undefined }
+                    { this.props.alwaysShowHeader ? 
+                        <RoomSubListHeader
+                            ref='header'
+                            label={ this.props.label }
+                            tagName={ this.props.tagName }
+                            roomCount={ roomCount }
+                            collapsed={ this.props.collapsed }
+                            hidden={ this.state.hidden }
+                            isIncomingCallRoom={ isIncomingCallRoom }
+                            roomNotificationCount={ this.roomNotificationCount() }
+                            onClick={ this.onClick }
+                            onHeaderClick={ this.props.onHeaderClick }
+                        />
+                     : undefined }
                     { (this.props.showSpinner && !this.state.hidden) ? <Loader /> : undefined }
                 </div>
             );

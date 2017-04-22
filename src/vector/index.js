@@ -75,6 +75,7 @@ var lastLocationHashSet = null;
 var CallHandler = require("matrix-react-sdk/lib/CallHandler");
 CallHandler.setConferenceHandler(VectorConferenceHandler);
 
+var counterpart = require('counterpart');
 MatrixClientPeg.setIndexedDbWorkerScript(window.vector_indexeddb_worker_script);
 
 function checkBrowserFeatures(featureList) {
@@ -99,6 +100,14 @@ function checkBrowserFeatures(featureList) {
         }
     }
     return featureComplete;
+}
+
+function onAction(payload) {
+  switch (payload.action) {
+    case 'set_language':
+      counterpart.setLocale(payload.value);
+      break;
+  }
 }
 
 var validBrowser = checkBrowserFeatures([
@@ -259,7 +268,6 @@ async function loadApp() {
     let configError;
     try {
         configJson = await getConfig();
-        rageshake.setBugReportEndpoint(configJson.bug_report_endpoint_url);
     } catch (e) {
         configError = e;
     }
@@ -288,6 +296,30 @@ async function loadApp() {
             />,
             document.getElementById('matrixchat')
         );
+        var localSettingsString = JSON.parse(localStorage.getItem('mx_local_settings') || '{}');
+        counterpart.registerTranslations('en', require('../i18n/en_EN'));
+        counterpart.registerTranslations('de', require('../i18n/de_DE'));
+        var pt = require('../i18n/pt_BR');
+        counterpart.registerTranslations('pt', pt);
+        counterpart.registerTranslations('pt-BR', pt);
+        dis.register(onAction);
+        if (Object.keys(localSettingsString).length === 0) {
+
+            if ( navigator.languages ) {
+                counterpart.setFallbackLocale( navigator.languages );
+//                counterpart.setLocale(window.navigator.languages[0]);
+            } else {
+                counterpart.setFallbackLocale( 'en' );
+                if ( navigator.userLanguage ) { //IE
+                    counterpart.setLocale( navigator.userLanguage );
+                }
+            }
+
+            dis.dispatch({
+                action: 'set_language',
+                value: language,
+            });
+        }
     }
     else {
         console.error("Browser is missing required features.");
