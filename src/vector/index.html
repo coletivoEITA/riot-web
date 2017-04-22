@@ -25,7 +25,7 @@
         var match = file.match(/^bundles\/.*?\/theme-(.*)\.css$/);
         if (match) {
             var title = match[1].charAt(0).toUpperCase() + match[1].slice(1);
-            var light = match[1] == 'light';
+            var light = match[1] == 'cadcampo'; /* should be configurable */
         %>
            <link rel="<%= light ? '' : 'alternate ' %>stylesheet" title="<%= title %>"
                href="<%= file %>">
