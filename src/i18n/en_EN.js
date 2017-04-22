@@ -1,4 +1,4 @@
-{
+module.exports = {
   "Please Register": "Please Register",
   "Guest users can't invite users. Please register to invite.": "Guest users can't invite users. Please register to invite.",
   "Members": "Members",
@@ -22,4 +22,4 @@
   "No rooms to show": "No rooms to show",
   "World readable": "World readable",
   "Guests can join": "Guests can join"
-}
+};

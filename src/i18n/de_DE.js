@@ -1,4 +1,4 @@
-{
+module.exports = {
   "Please Register": "Bitte Registrieren",
   "Guest users can't invite users. Please register to invite.": "Gäste können keine User einladen. Zum Einladen bitte anmelden.",
   "Members": "Mitglieder",
@@ -22,4 +22,4 @@
   "No rooms to show": "Keine Räume zum anzeigen",
   "World readable": "Jeder kann lesen",
   "Guests can join": "Gäste können beitreten"
-}
+};

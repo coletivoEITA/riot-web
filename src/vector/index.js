@@ -299,26 +299,22 @@ async function loadApp() {
         var localSettingsString = JSON.parse(localStorage.getItem('mx_local_settings') || '{}');
         counterpart.registerTranslations('en', require('../i18n/en_EN'));
         counterpart.registerTranslations('de', require('../i18n/de_DE'));
-        counterpart.registerTranslations('pt-BR', require('../i18n/pt_BR'));
-        counterpart.setFallbackLocale('en');
+        var pt = require('../i18n/pt_BR');
+        counterpart.registerTranslations('pt', pt);
+        counterpart.registerTranslations('pt-BR', pt);
         dis.register(onAction);
         if (Object.keys(localSettingsString).length === 0) {
-            var language = null;
 
-            if (navigator.languages) {
-                language =  navigator.languages[0];
+            if ( navigator.languages ) {
+                counterpart.setFallbackLocale( navigator.languages );
+//                counterpart.setLocale(window.navigator.languages[0]);
+            } else {
+                counterpart.setFallbackLocale( 'en' );
+                if ( navigator.userLanguage ) { //IE
+                    counterpart.setLocale( navigator.userLanguage );
+                }
             }
 
-            if (language == null) {
-                language = navigator.language || navigator.userLanguage;
-            }
-
-            
-            counterpart.setLocale(language);
-
-            console.log("dispatching lang="+language);
-//            const language = navigator.languages[0] || navigator.language || navigator.userLanguage;
-//            counterpart.setLocale(language);
             dis.dispatch({
                 action: 'set_language',
                 value: language,
