@@ -297,19 +297,32 @@ async function loadApp() {
             document.getElementById('matrixchat')
         );
         var localSettingsString = JSON.parse(localStorage.getItem('mx_local_settings') || '{}');
-        sdk.setLanguage(localSettingsString.language);
-        counterpart.registerTranslations('en-en', require('../i18n/en_EN'));
-        counterpart.registerTranslations('de-de', require('../i18n/de_DE'));
-        counterpart.registerTranslations('pt-br', require('../i18n/pt_BR'));
+        counterpart.registerTranslations('en', require('../i18n/en_EN'));
+        counterpart.registerTranslations('de', require('../i18n/de_DE'));
+        counterpart.registerTranslations('pt-BR', require('../i18n/pt_BR'));
         counterpart.setFallbackLocale('en');
         dis.register(onAction);
         if (Object.keys(localSettingsString).length === 0) {
-          const language = navigator.languages[0] || navigator.language || navigator.userLanguage;
-          counterpart.setLocale(language);
-          dis.dispatch({
-              action: 'set_language',
-              value: language,
-          });
+            var language = null;
+
+            if (navigator.languages) {
+                language =  navigator.languages[0];
+            }
+
+            if (language == null) {
+                language = navigator.language || navigator.userLanguage;
+            }
+
+            
+            counterpart.setLocale(language);
+
+            console.log("dispatching lang="+language);
+//            const language = navigator.languages[0] || navigator.language || navigator.userLanguage;
+//            counterpart.setLocale(language);
+            dis.dispatch({
+                action: 'set_language',
+                value: language,
+            });
         }
     }
     else {
