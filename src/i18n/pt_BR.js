@@ -1,7 +1,7 @@
 module.exports = {
     "Couldn't find a matching Matrix room" : "Não foi possível encontrar uma sala correspondente.",
     'Create new room' : 'Criar nova sala',
-    'Custom Server Options' : 'Opções de customização do servidor",
+    'Custom Server Options' : "Opções de customização do servidor",
     "Direct Chat" : "Conversa direta",
     'Directory' : 'Diretório',
     'Dismiss' : "Encerrar",
@@ -16,7 +16,7 @@ module.exports = {
     "Favourite" : "Favoritos",
     "Fetching third party location failed" : "Falha ao acessar localização de terceiros",
     'Files' : 'Arquivos',
-    'Filter room names' : 'Filtrar salas por título'
+    'Filter room names' : 'Filtrar salas por título',
     "Forget" : "Esquecer",
     " from room" : " da sala",
     'Guests can join' : "Convidados podem entrar",
