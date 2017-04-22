@@ -44,5 +44,5 @@ module.exports = {
     "unknown error code" : "Código de erro desconhecido",
     "Unnamed room" : "Sala sem título",
     'World readable' : "Público",
-    "You are not receiving desktop notifications." : "Você não está recebendo notificações desktop.",
+    "You are not receiving desktop notifications" : "Você não está recebendo notificações desktop",
 };
