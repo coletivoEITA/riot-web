@@ -102,14 +102,6 @@ function checkBrowserFeatures(featureList) {
     return featureComplete;
 }
 
-function onAction(payload) {
-  switch (payload.action) {
-    case 'set_language':
-      counterpart.setLocale(payload.value);
-      break;
-  }
-}
-
 var validBrowser = checkBrowserFeatures([
     "displaytable", "flexbox", "es5object", "es5function", "localstorage",
     "objectfit"
@@ -299,26 +291,17 @@ async function loadApp() {
         var localSettingsString = JSON.parse(localStorage.getItem('mx_local_settings') || '{}');
         counterpart.registerTranslations('en', require('../i18n/en_EN'));
         counterpart.registerTranslations('de', require('../i18n/de_DE'));
-        var pt = require('../i18n/pt_BR');
-        counterpart.registerTranslations('pt', pt);
-        counterpart.registerTranslations('pt-BR', pt);
-        dis.register(onAction);
-        if (Object.keys(localSettingsString).length === 0) {
+        counterpart.registerTranslations('pt', require('../i18n/pt_BR'));
+        counterpart.registerTranslations('pt-BR', require('../i18n/pt_BR'));
 
-            if ( navigator.languages ) {
-                counterpart.setFallbackLocale( navigator.languages );
-//                counterpart.setLocale(window.navigator.languages[0]);
-            } else {
-                counterpart.setFallbackLocale( 'en' );
-                if ( navigator.userLanguage ) { //IE
-                    counterpart.setLocale( navigator.userLanguage );
-                }
+        if ( navigator.languages ) {
+            counterpart.setFallbackLocale( navigator.languages );
+            counterpart.setLocale(window.navigator.languages[0]);
+        } else {
+            counterpart.setFallbackLocale( 'en' );
+            if ( navigator.userLanguage ) { //IE
+                counterpart.setLocale( navigator.userLanguage );
             }
-
-            dis.dispatch({
-                action: 'set_language',
-                value: language,
-            });
         }
     }
     else {
