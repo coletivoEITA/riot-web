@@ -1,6 +1,9 @@
 @import "_base.scss";
 @import "../_components.scss";
 
+.cadcampoHide {
+    display: none;
+}
 
 .mx_MatrixChat {
     max-width: 1300px;
