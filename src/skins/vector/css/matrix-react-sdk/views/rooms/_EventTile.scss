@@ -130,6 +130,15 @@ limitations under the License.
     color: $event-notsent-color;
 }
 
+.mx_EventTile_redacted .mx_EventTile_line .mx_UnknownBody {
+    display: block;
+    width: 100%;
+    max-width: 300px;
+    height: 24px;
+    border-radius: 4px;
+    background-color: black;
+}
+
 .mx_EventTile_highlight,
 .mx_EventTile_highlight .markdown-body
  {
@@ -249,6 +258,12 @@ limitations under the License.
 .mx_EventTile:hover.mx_EventTile_verified .mx_EventTile_line,
 .mx_EventTile:hover.mx_EventTile_unverified .mx_EventTile_line {
     padding-left: 60px;
+}
+
+.mx_EventTile_selected.mx_EventTile_info .mx_EventTile_line,
+.mx_EventTile:hover.mx_EventTile_verified.mx_EventTile_info .mx_EventTile_line,
+.mx_EventTile:hover.mx_EventTile_unverified.mx_EventTile_info .mx_EventTile_line {
+    padding-left: 78px;
 }
 
 .mx_EventTile:hover.mx_EventTile_verified .mx_EventTile_line {
