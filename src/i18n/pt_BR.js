@@ -55,4 +55,8 @@ module.exports = {
     "There are advanced notifications which are not shown here" : "Existem opções avançadas que não são exibidas aqui",
     "You might have configured them in a client other than Riot. You cannot tune them in Riot but they still apply." : "Você pode te-las configurado em outro cliente além do Riot. Você não pode ajustá-las no Riot, mas ainda assim elas se aplicam aqui.",
     "Enable audible notifications in web client" : "Ativar notificações de áudio no cliente web",
+    "Drop here to" : "Arraste aqui para",
+    "Favourite" : "Favorito",
+		"Low Priority" : "Baixa prioridade", 
+		"Direct Chat" : "Conversa pessoal",
 };
