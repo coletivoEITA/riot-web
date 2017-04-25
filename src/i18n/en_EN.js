@@ -54,4 +54,8 @@ module.exports = {
  "There are advanced notifications which are not shown here" : "There are advanced notifications which are not shown here" ,
  "You might have configured them in a client other than Riot. You cannot tune them in Riot but they still apply." : "You might have configured them in a client other than Riot. You cannot tune them in Riot but they still apply." ,
  "Enable audible notifications in web client" : "Enable audible notifications in web client" ,
+ "Drop here to" : "Drop here to",
+ "Favourite" : "Favourite",
+ "Low Priority" : "Low Priority", 
+ "Direct Chat" : "Direct Chat",
 }; 
