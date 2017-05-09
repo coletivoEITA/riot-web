@@ -1,5 +1,5 @@
 /*
-Copyright 2015, 2016 OpenMarket Ltd
+Copyright 2107 Vector Creations Ltd
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,21 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-'use strict';
+.mx_RoleButton {
+    margin-left: 4px;
+    margin-right: 4px;
+    cursor: pointer;
+    display: inline-block;
+}
 
-var React = require('react');
-var DateUtils = require('matrix-react-sdk/lib/DateUtils');
+.mx_RoleButton object {
+    pointer-events: none;
+}
 
-module.exports = React.createClass({
-    displayName: 'MessageTimestamp',
-
-    render: function() {
-        var date = new Date(this.props.ts);
-        return (
-            <span className="mx_MessageTimestamp" title={ DateUtils.formatDate(date) }>
-                { DateUtils.formatTime(date) }
-            </span>
-        );
-    },
-});
-
+.mx_RoleButton_tooltip {
+    display: inline-block;
+    position: relative;
+    top: -25px;
+    left: 6px;
+}

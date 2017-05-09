@@ -259,9 +259,13 @@ async function loadApp() {
     let configError;
     try {
         configJson = await getConfig();
-        rageshake.setBugReportEndpoint(configJson.bug_report_endpoint_url);
     } catch (e) {
         configError = e;
+    }
+
+    if (window.localStorage && window.localStorage.getItem('mx_accepts_unsupported_browser')) {
+        console.log('User has previously accepted risks in using an unsupported browser');
+        validBrowser = true;
     }
 
     console.log("Vector starting at "+window.location);
@@ -295,6 +299,7 @@ async function loadApp() {
         var CompatibilityPage = sdk.getComponent("structures.CompatibilityPage");
         window.matrixChat = ReactDOM.render(
             <CompatibilityPage onAccept={function() {
+                if (window.localStorage) window.localStorage.setItem('mx_accepts_unsupported_browser', true);
                 validBrowser = true;
                 console.log("User accepts the compatibility risks.");
                 loadApp();

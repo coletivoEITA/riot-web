@@ -20,22 +20,20 @@ limitations under the License.
 import VectorBasePlatform from './VectorBasePlatform';
 import dis from 'matrix-react-sdk/lib/dispatcher';
 import q from 'q';
+import electron, {remote} from 'electron';
 
-const electron = require('electron');
-const remote = electron.remote;
+remote.autoUpdater.on('update-downloaded', onUpdateDownloaded);
 
-electron.remote.autoUpdater.on('update-downloaded', onUpdateDownloaded);
-
-function onUpdateDownloaded(ev, releaseNotes, ver, date, updateURL) {
+function onUpdateDownloaded(ev: Event, releaseNotes: string, ver: string, date: Date, updateURL: string) {
     dis.dispatch({
         action: 'new_version',
-        currentVersion: electron.remote.app.getVersion(),
+        currentVersion: remote.app.getVersion(),
         newVersion: ver,
         releaseNotes: releaseNotes,
     });
 }
 
-function platformFriendlyName() {
+function platformFriendlyName(): string {
     console.log(window.process);
     switch (window.process.platform) {
         case 'darwin':
@@ -68,40 +66,52 @@ export default class ElectronPlatform extends VectorBasePlatform {
         try {
             remote.app.setBadgeCount(count);
         } catch (e) {
-            console.error("Failed to set notification count", e);
+            console.error('Failed to set notification count', e);
         }
     }
 
-    supportsNotifications() : boolean {
+    supportsNotifications(): boolean {
         return true;
     }
 
-    maySendNotifications() : boolean {
+    maySendNotifications(): boolean {
         return true;
     }
 
     displayNotification(title: string, msg: string, avatarUrl: string, room: Object): Notification {
+
+        // GNOME notification spec parses HTML tags for styling...
+        // Electron Docs state all supported linux notification systems follow this markup spec
+        // https://github.com/electron/electron/blob/master/docs/tutorial/desktop-environment-integration.md#linux
+        // maybe we should pass basic styling (italics, bold, underline) through from MD
+        // we only have to strip out < and > as the spec doesn't include anything about things like &amp;
+        // so we shouldn't assume that all implementations will treat those properly. Very basic tag parsing is done.
+        if (window.process.platform === 'linux') {
+            msg = msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
         // Notifications in Electron use the HTML5 notification API
         const notification = new global.Notification(
             title,
             {
                 body: msg,
                 icon: avatarUrl,
-                tag: "vector",
+                tag: 'vector',
                 silent: true, // we play our own sounds
-            }
+            },
         );
 
         notification.onclick = function() {
             dis.dispatch({
                 action: 'view_room',
-                room_id: room.roomId
+                room_id: room.roomId,
             });
             global.focus();
-            const currentWin = electron.remote.getCurrentWindow();
-            currentWin.show();
-            currentWin.restore();
-            currentWin.focus();
+            const win = remote.getCurrentWindow();
+
+            if (win.isMinimized()) win.restore();
+            else if (!win.isVisible()) win.show();
+            else win.focus();
         };
 
         return notification;
@@ -111,8 +121,8 @@ export default class ElectronPlatform extends VectorBasePlatform {
         notif.close();
     }
 
-    getAppVersion() {
-        return q(electron.remote.app.getVersion());
+    getAppVersion(): Promise<string> {
+        return q(remote.app.getVersion());
     }
 
     pollForUpdate() {
@@ -128,15 +138,19 @@ export default class ElectronPlatform extends VectorBasePlatform {
         electron.ipcRenderer.send('install_update');
     }
 
-    getDefaultDeviceDisplayName() {
-        return "Riot Desktop on " + platformFriendlyName();
+    getDefaultDeviceDisplayName(): string {
+        return 'Riot Desktop on ' + platformFriendlyName();
     }
 
-    screenCaptureErrorString() {
+    screenCaptureErrorString(): ?string {
         return null;
     }
 
-    requestNotificationPermission() : Promise {
+    requestNotificationPermission(): Promise<string> {
         return q('granted');
+    }
+
+    reload() {
+        remote.getCurrentWebContents().reload();
     }
 }

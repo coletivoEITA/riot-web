@@ -30,6 +30,8 @@ const tray = require('./tray');
 
 const VectorMenu = require('./vectormenu');
 
+const windowStateKeeper = require('electron-window-state');
+
 let vectorConfig = {};
 try {
     vectorConfig = require('../../webapp/config.json');
@@ -171,6 +173,7 @@ const shouldQuit = electron.app.makeSingleInstance((commandLine, workingDirector
 });
 
 if (shouldQuit) {
+    console.log("Other instance detected: exiting");
     electron.app.quit()
 }
 
@@ -186,11 +189,21 @@ electron.app.on('ready', () => {
         process.platform == 'win32' ? 'ico' : 'png'
     );
 
+    // Load the previous window state with fallback to defaults
+    let mainWindowState = windowStateKeeper({
+        defaultWidth: 1024,
+        defaultHeight: 768,
+    });
+
     mainWindow = new electron.BrowserWindow({
         icon: icon_path,
-        width: 1024, height: 768,
         show: false,
         autoHideMenuBar: true,
+
+        x: mainWindowState.x,
+        y: mainWindowState.y,
+        width: mainWindowState.width,
+        height: mainWindowState.height,
     });
     mainWindow.loadURL(`file://${__dirname}/../../webapp/index.html`);
     electron.Menu.setApplicationMenu(VectorMenu);
@@ -201,9 +214,12 @@ electron.app.on('ready', () => {
         brand: vectorConfig.brand || 'Riot'
     });
 
-    mainWindow.once('ready-to-show', () => {
-        mainWindow.show();
-    });
+    if (!process.argv.includes('--hidden')) {
+        mainWindow.once('ready-to-show', () => {
+            mainWindow.show();
+        });
+    }
+
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
@@ -226,6 +242,8 @@ electron.app.on('ready', () => {
             onLinkContextMenu(ev, params);
         }
     });
+
+    mainWindowState.manage(mainWindow);
 });
 
 electron.app.on('window-all-closed', () => {
