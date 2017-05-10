@@ -18,7 +18,6 @@
                 ]
             }
         },
-
         "networks": {
             "gitter": {
                 "protocol": "gitter",
@@ -61,6 +60,19 @@
                 "nativePattern": "^#[^\\s]+$"
             }
         }
-    }
-    
+    },
+    "themes": [
+    	{
+    		"label": "Tema RIOS",
+    		"value": "cadcampo"
+    	},
+    	{
+    		"label": "Light theme",
+    		"value": "light"
+    	},
+    	{
+    		"label": "Dark theme",
+    		"value": "dark"
+    	}
+    ]
 }
