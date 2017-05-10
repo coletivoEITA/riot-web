@@ -11,5 +11,14 @@
             "matrix.org"
         ]
     },
-    "languages": ["en", "de", "pt-br", "ru", "da"]
+    "themes": [
+    	{
+    		"label": "Light theme",
+    		"value": "light"
+    	},
+    	{
+    		"label": "Dark theme",
+    		"value": "dark"
+    	}
+    ]
 }
