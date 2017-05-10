@@ -20,6 +20,7 @@ module.exports = {
         // CSS themes
         "theme-light": "./src/skins/vector/css/themes/light.scss",
         "theme-dark": "./src/skins/vector/css/themes/dark.scss",
+        "theme-cadcampo": "./src/skins/vector/css/themes/cadcampo.scss"
     },
     module: {
         preLoaders: [

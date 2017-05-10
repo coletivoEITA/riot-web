@@ -1,0 +1,135 @@
+@import "_base.scss";
+@import "../_components.scss";
+
+.cadcampoHide {
+    display: none;
+}
+
+.mx_MatrixChat {
+    max-width: 1300px;
+    margin: 0 auto;
+    border-right-style: solid;
+    border-left-style: solid;
+    border-left-color: #ddd;
+    border-right-color: #ddd;
+}
+
+.mx_RoomSettings_powerLevels {
+    display: none;
+}
+
+body, .mx_EventTile_line, .mx_EventTile, .mx_RightPanel_footer .mx_RightPanel_invite, .mx_MessageComposer_input textarea, .mx_EntityTile_name , .mx_EventTile_content , .mx_EventTile_content .markdown-body, .mx_MemberList_query::-moz-placeholder {
+    font-size: 13px !important;
+}
+
+body, .mx_EventTile_line, .mx_EventTile {
+    line-height: 18px !important;
+}
+
+.mx_EventTile_line {
+    padding-top: 0px;
+    padding-bottom: 0px;
+}
+
+.mx_SearchBox_search {
+    background: white !important;
+    border: 2px solid #ddd !important;
+    margin-left: -33px;
+    padding-left: 33px;
+}
+
+.mx_EventTile_redacted .mx_EventTile_line .mx_UnknownBody {
+    background-color: unset;
+}
+
+.mx_SearchBox_searchButton {
+    z-index: 100;
+    margin-left: 10px;
+    margin-top: 7px;
+}
+
+.mx_RoomSubList_labelContainer {
+    display: none;
+}
+
+.mx_RoomDropTarget {
+    display: none;
+}
+
+.mx_BottomLeftMenu_directory {
+    display: none !important;
+}
+
+.mx_EventTile_avatar {
+    display: none;
+}
+
+/* hide settings */
+.mx_UserSettings_section.mx_DevicesPanel {
+    display: none;
+}
+.mx_UserSettings_section.mx_UserSettings_cryptoSection {
+    display: none;
+}
+.mx_UserSettings_advanced {
+    display: none;
+}
+
+/* contextual menu */
+
+.mx_RoomTileContextMenu_tag_field {
+    display: none;
+}
+
+/* background colors */
+
+
+.mx_MatrixChat .mx_LeftPanel {
+    background-color: #ececec;
+}
+
+.mx_MatrixToolbar {
+    background-color: #d4ccb1;
+}
+
+/*
+.mx_MatrixChat_middlePanel , .mx_RoomView_statusArea {
+    background-color: #ececec !important;
+}
+
+.mx_MatrixChat .mx_MatrixChat_middlePanel {
+    padding-right: 0px;
+}
+
+.mx_RightPanel {
+    padding-left: 22px;   
+}
+
+.mx_RoomTile.mx_RoomTile_selected, .mx_RoomTile.mx_RoomTile_selected:hover {
+    background: #8789ae;
+}
+
+.mx_RoomTile_selected .mx_RoomTile_name {
+    color: white;
+}
+
+.mx_RoomTile:hover {
+    background: #ececec;
+}
+
+.mx_EventTile_line {
+    background-color: white;
+}
+
+.mx_EventTile:hover .mx_EventTile_line {
+    background-color: white;
+}
+
+.mx_RoomView .mx_MessageComposer {
+    background: white;
+}
+
+.mx_RoomHeader_rightRow {
+    background-color: unset;
+}
+*/
