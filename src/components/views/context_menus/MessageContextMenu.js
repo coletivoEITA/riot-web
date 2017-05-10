@@ -143,19 +143,11 @@ module.exports = React.createClass({
             );
         }
 
-<<<<<<< HEAD
-        viewSourceButton = (
+        /*viewSourceButton = (
             <div className="mx_MessageContextMenu_field" onClick={this.onViewSourceClick}>
                 { counterpart.translate("View Source") }
             </div>
-        );
-=======
-        // viewSourceButton = (
-        //     <div className="mx_MessageContextMenu_field" onClick={this.onViewSourceClick}>
-        //         View Source
-        //     </div>
-        // );
->>>>>>> cadcampo
+        );*/
 
         if (this.props.mxEvent.getType() !== this.props.mxEvent.getWireType()) {
             viewClearSourceButton = (
