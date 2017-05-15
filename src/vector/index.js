@@ -55,7 +55,8 @@ if (process.env.NODE_ENV !== 'production') {
 
 var RunModernizrTests = require("./modernizr"); // this side-effects a global
 var ReactDOM = require("react-dom");
-import counterpart from 'counterpart';
+// Workaround for broken export
+import * as counterpart from 'counterpart';
 var languageHandler = require("matrix-react-sdk/lib/languageHandler");
 var sdk = require("matrix-react-sdk");
 var PlatformPeg = require("matrix-react-sdk/lib/PlatformPeg");
@@ -64,7 +65,6 @@ var VectorConferenceHandler = require('../VectorConferenceHandler');
 var UpdateChecker = require("./updater");
 var q = require('q');
 var request = require('browser-request');
-import dis from 'matrix-react-sdk/lib/dispatcher';
 import Modal from 'matrix-react-sdk/lib/Modal';
 
 import url from 'url';
@@ -246,15 +246,6 @@ function onLoadCompleted() {
     }
 }
 
-function onAction(payload) {
-	switch (payload.action) {
-    	case 'set_language':
-			const language = payload.value;
-			languageHandler.setLanguage(language, counterpart);
-		break;
-	}
-}
-
 async function loadApp() {
 
     const fragparts = parseQsFromFragment(window.location);
@@ -289,7 +280,7 @@ async function loadApp() {
     } catch (e) {
         configError = e;
     }
-    
+
     if (!configJson.languages) {
     	let languages;
 		try {
@@ -349,7 +340,6 @@ async function loadApp() {
 
 function loadLanguage(callback) {
 	const _localSettings = getLocalSettings();
-	//dis.register(onAction);
 	var languages = [];
 	if (!_localSettings.hasOwnProperty('language')) {
 	    languages = languageHandler.getNormalizedLanguageKeys(languageHandler.getLanguageFromBrowser());
