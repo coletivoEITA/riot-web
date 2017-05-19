@@ -18,7 +18,7 @@
     display: none;
 }
 
-body, .mx_EventTile_line, .mx_EventTile, .mx_RightPanel_footer .mx_RightPanel_invite, .mx_MessageComposer_input textarea, .mx_EntityTile_name , .mx_EventTile_content , .mx_EventTile_content .markdown-body, .mx_MemberList_query::-moz-placeholder {
+body, .mx_EventTile_line, .mx_EventTile, .mx_RightPanel_footer .mx_RightPanel_invite, .mx_MessageComposer_input textarea, .mx_EntityTile_name , .mx_EventTile_content , .mx_EventTile_content .markdown-body, .mx_MemberList_query::-moz-placeholder, .mx_TextualEvent {
     font-size: 13px !important;
 }
 
@@ -79,6 +79,10 @@ body, .mx_EventTile_line, .mx_EventTile {
 
 .mx_RoomTileContextMenu_tag_field {
     display: none;
+}
+
+.mx_EventTile_editButton {
+    top: 3px;
 }
 
 /* background colors */
