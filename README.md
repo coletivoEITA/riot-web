@@ -129,6 +129,7 @@ You can configure the app by copying `config.sample.json` to
    anything else since it is used to isolate the privileges of file attachments to this
    domain. Default: `usercontent.riot.im`. This needs to contain v1.html from
    https://github.com/matrix-org/usercontent/blob/master/v1.html
+1. `allowedPostMessageOrigins`: External hostnames that are allowed to send postMessages to riot-web to login/logout remotely
 
 Running as a Desktop app
 ========================
@@ -185,6 +186,14 @@ Other options for running as a desktop app:
 sudo npm install nativefier -g
 nativefier https://riot.im/app/
 ```
+
+Logging in or out remotely
+==========================
+
+Authorized sender URLs can do login or logout of any user, which allows for
+integration of Riot-Web with other platforms using the same user database.
+To learn more about how to remotely log out or in in Riot, take a look at
+https://github.com/vector-im/riot-web/blob/master/docs/send_postmessage.md
 
 Development
 ===========
