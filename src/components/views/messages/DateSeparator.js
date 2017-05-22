@@ -18,7 +18,6 @@ limitations under the License.
 
 import React from 'react';
 import _t from 'counterpart-riot';
-import DateUtils from 'matrix-react-sdk/lib/DateUtils';
 
 function getdaysArray() {
 	var days = [];
@@ -51,7 +50,7 @@ module.exports = React.createClass({
             label = days[date.getDay()];
         }
         else {
-            label = DateUtils.formatFullDate(date);
+            label = date.toDateString();
         }
 
         return (
