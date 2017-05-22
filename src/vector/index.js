@@ -246,6 +246,38 @@ function onLoadCompleted() {
     }
 }
 
+function getThemeStyleElements() {
+    // look for the stylesheet elements.
+    // styleElements is a map from style name to HTMLLinkElement.
+    var styleElements = Object.create(null);
+    var i, a;
+    for (i = 0; (a = document.getElementsByTagName("link")[i]); i++) {
+        var href = a.getAttribute("href");
+        // shouldn't we be using the 'title' tag rather than the href?
+        var match = href.match(/^bundles\/.*\/theme-(.*)\.css$/);
+        if (match) {
+            styleElements[match[1]] = a;
+        }
+    }
+    return styleElements;
+}
+
+function filterValidThemes(themes) {
+    if (!themes) {
+        return;
+    }
+    var validThemes = [];
+    
+    var styleElements = getThemeStyleElements();
+    themes.forEach(function(configTheme) {
+	    if (configTheme.value in styleElements) {
+            validThemes.push(configTheme);
+	    }
+    });
+    return validThemes;
+}
+
+
 async function loadApp() {
 
     const fragparts = parseQsFromFragment(window.location);
@@ -280,6 +312,12 @@ async function loadApp() {
     } catch (e) {
         configError = e;
     }
+    
+    configJson.themes = filterValidThemes(configJson.themes);
+    
+    if (!configJson.themes) {
+        configJson.themes = [{"label":"Light theme", "value": "light"}];
+    }
 
     if (!configJson.languages) {
     	let languages;
@@ -312,6 +350,7 @@ async function loadApp() {
                 makeRegistrationUrl={makeRegistrationUrl}
                 ConferenceHandler={VectorConferenceHandler}
                 config={configJson}
+                themeStyleElements={getThemeStyleElements()}
                 realQueryParams={params}
                 startingFragmentQueryParams={fragparts.params}
                 enableGuest={true}
