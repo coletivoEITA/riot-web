@@ -49,6 +49,10 @@ body, .mx_EventTile_line, .mx_EventTile {
 }
 
 .mx_RoomSubList_labelContainer {
+    height: 0;
+}
+
+.mx_RoomSubList_label {
     display: none;
 }
 
