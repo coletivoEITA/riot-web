@@ -205,15 +205,6 @@ module.exports = React.createClass({
                             <TintableSvg src="img/icons-people.svg" width="25" height="25"/>
                             { membersHighlight }
                         </AccessibleButton>
-                        { /*
-                        <AccessibleButton
-                                className="mx_RightPanel_headerButton mx_RightPanel_filebutton"
-                                title={ _t('Files') } onClick={ this.onFileListButtonClick }>
-                            <div className="mx_RightPanel_headerButton_badge">&nbsp;</div>
-                            <TintableSvg src="img/icons-files.svg" width="25" height="25"/>
-                            { filesHighlight }
-                        </AccessibleButton>
-                        */}
                         <AccessibleButton
                                 className="mx_RightPanel_headerButton mx_RightPanel_notificationbutton"
                                 title={ _t('Notifications') } onClick={ this.onNotificationListButtonClick }>
@@ -223,7 +214,7 @@ module.exports = React.createClass({
                         </AccessibleButton>                    
                         <AccessibleButton
                                 className="mx_RightPanel_headerButton mx_RightPanel_filebutton"
-                                title="Files" onClick={ this.onFileListButtonClick }>
+                                title={ _t('Files') } onClick={ this.onFileListButtonClick }>
                             <div className="mx_RightPanel_headerButton_badge">&nbsp;</div>
                             <TintableSvg src="img/icons-files.svg" width="25" height="25"/>
                             { filesHighlight }
