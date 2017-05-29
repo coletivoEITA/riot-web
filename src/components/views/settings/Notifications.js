@@ -16,7 +16,7 @@ limitations under the License.
 
 'use strict';
 var React = require('react');
-import _t from 'counterpart-riot';
+import { _t } from 'matrix-react-sdk/lib/languageHandler';
 var q = require("q");
 var sdk = require('matrix-react-sdk');
 var MatrixClientPeg = require('matrix-react-sdk/lib/MatrixClientPeg');
@@ -133,7 +133,7 @@ module.exports = React.createClass({
             var ErrorDialog = sdk.getComponent("dialogs.ErrorDialog");
             Modal.createDialog(ErrorDialog, {
                 title: _t('Error saving email notification preferences'),
-                description: _t('An error occurred whilst saving your email notification preferences') + '.',
+                description: _t('An error occurred whilst saving your email notification preferences.'),
             });
         });
     },
@@ -177,7 +177,8 @@ module.exports = React.createClass({
         var TextInputDialog = sdk.getComponent("dialogs.TextInputDialog");
         Modal.createDialog(TextInputDialog, {
             title: _t('Keywords'),
-            description: _t('Enter keywords separated by a comma') + ':',
+            description: _t('Enter keywords separated by a comma:'),
+            button: _t('OK'),
             value: keywords,
             button: _t('OK'),
             onFinished: function onFinished(should_leave, newValue) {
@@ -715,7 +716,7 @@ module.exports = React.createClass({
                     {masterPushRuleDiv}
 
                     <div className="mx_UserSettings_notifTable">
-                        { _t('All notifications are currently disabled for all targets') }.
+                        { _t('All notifications are currently disabled for all targets.') }.
                     </div>
                 </div>
             );
@@ -785,7 +786,7 @@ module.exports = React.createClass({
         if (externalRules.length) {
             advancedSettings = (
                 <div>
-                    <h3>{ _t('Advanced notifications settings') }</h3>
+                    <h3>{ _t('Advanced notification settings') }</h3>
                     { _t('There are advanced notifications which are not shown here') }.<br/>
                     { _t('You might have configured them in a client other than Riot. You cannot tune them in Riot but they still apply') }.
                     <ul>

@@ -14,15 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// 'use strict';
-
 import React from 'react';
-import _t from 'counterpart-riot';
+import { _t } from 'matrix-react-sdk/lib/languageHandler';
 import DateUtils from 'matrix-react-sdk/lib/DateUtils';
 
 function getdaysArray() {
-	var days = [_t('Sunday'), _t('Monday'), _t('Tuesday'), _t('Wednesday'), _t('Thursday'), _t('Friday'), _t('Saturday')];
-	return days;
+	return [
+        _t('Sunday'),
+        _t('Monday'),
+        _t('Tuesday'),
+        _t('Wednesday'),
+        _t('Thursday'),
+        _t('Friday'),
+        _t('Saturday'),
+    ];
 }
 
 module.exports = React.createClass({

@@ -65,7 +65,8 @@ var VectorConferenceHandler = require('../VectorConferenceHandler');
 var UpdateChecker = require("./updater");
 var q = require('q');
 var request = require('browser-request');
-import Modal from 'matrix-react-sdk/lib/Modal';
+import * as UserSettingsStore from 'matrix-react-sdk/lib/UserSettingsStore';
+import * as languageHandler from 'matrix-react-sdk/lib/languageHandler';
 
 import url from 'url';
 
@@ -279,6 +280,7 @@ function filterValidThemes(themes) {
 
 
 async function loadApp() {
+    await loadLanguage();
 
     const fragparts = parseQsFromFragment(window.location);
     const params = parseQs(window.location);
@@ -377,17 +379,22 @@ async function loadApp() {
     }
 }
 
-function loadLanguage(callback) {
-	const _localSettings = getLocalSettings();
-	var languages = [];
-	if (!_localSettings.hasOwnProperty('language')) {
-	    languages = languageHandler.getNormalizedLanguageKeys(languageHandler.getLanguageFromBrowser());
-	}else {
-	  	languages = languageHandler.getNormalizedLanguageKeys(_localSettings.language);
-	}
-	languageHandler.setLanguage(languages, counterpart);
-	setLocalSetting('language', languages[0]);
-	callback();
+async function loadLanguage() {
+    const prefLang = UserSettingsStore.getLocalSetting('language');
+    let langs = [];
+
+    if (!prefLang) {
+        languageHandler.getLanguagesFromBrowser().forEach((l) => {
+            langs.push(...languageHandler.getNormalizedLanguageKeys(l));
+        });
+    } else {
+        langs = [prefLang];
+    }
+    try {
+        await languageHandler.setLanguage(langs);
+    } catch (e) {
+        console.error("Unable to set language", e);
+    }
 }
 
-loadLanguage(loadApp);
+loadApp();
