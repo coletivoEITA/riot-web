@@ -1,5 +1,5 @@
 {
-    "default_hs_url": "http://matrix.eita.org.br:8008",
+    "default_hs_url": "https://snieecs.matrix.eita.org.br:8448",
     "default_is_url": "https://vector.im",
     "brand": "Caderno de Campo",
     "integrations_ui_url": "http://localhost:8081/",
@@ -18,7 +18,6 @@
                 ]
             }
         },
-
         "networks": {
             "gitter": {
                 "protocol": "gitter",
@@ -61,6 +60,23 @@
                 "nativePattern": "^#[^\\s]+$"
             }
         }
-    }
-    
+    },
+    "themes": [
+    	{
+    		"label": "Tema RIOS",
+    		"value": "cadcampo"
+    	},
+    	{
+    		"label": "Tema claro",
+    		"value": "light"
+    	},
+    	{
+    		"label": "Tema escuro",
+    		"value": "dark"
+    	}
+    ],
+    "allowedPostMessageOrigins": [
+        "http://nextcloud.eita.org.br",
+        "https://snieecs.eita.org.br"
+    ]
 }
