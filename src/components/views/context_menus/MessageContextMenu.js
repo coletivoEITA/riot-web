@@ -218,10 +218,10 @@ module.exports = React.createClass({
                 {redactButton}
                 {cancelButton}
                 {forwardButton}
-                {viewSourceButton}
+                {/*viewSourceButton*/}
                 {viewClearSourceButton}
                 {unhidePreviewButton}
-                {permalinkButton}
+                {/*permalinkButton*/}
                 {UserSettingsStore.isFeatureEnabled('rich_text_editor') ? quoteButton : null}
                 {externalURLButton}
             </div>

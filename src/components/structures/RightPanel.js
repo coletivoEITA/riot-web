@@ -206,18 +206,18 @@ module.exports = React.createClass({
                             { membersHighlight }
                         </AccessibleButton>
                         <AccessibleButton
-                                className="mx_RightPanel_headerButton mx_RightPanel_filebutton"
-                                title={ _t('Files') } onClick={ this.onFileListButtonClick }>
-                            <div className="mx_RightPanel_headerButton_badge">&nbsp;</div>
-                            <TintableSvg src="img/icons-files.svg" width="25" height="25"/>
-                            { filesHighlight }
-                        </AccessibleButton>
-                        <AccessibleButton
                                 className="mx_RightPanel_headerButton mx_RightPanel_notificationbutton"
                                 title={ _t('Notifications') } onClick={ this.onNotificationListButtonClick }>
                             <div className="mx_RightPanel_headerButton_badge">&nbsp;</div>
                             <TintableSvg src="img/icons-notifications.svg" width="25" height="25"/>
                             { notificationsHighlight }
+                        </AccessibleButton>                    
+                        <AccessibleButton
+                                className="mx_RightPanel_headerButton mx_RightPanel_filebutton"
+                                title={ _t('Files') } onClick={ this.onFileListButtonClick }>
+                            <div className="mx_RightPanel_headerButton_badge">&nbsp;</div>
+                            <TintableSvg src="img/icons-files.svg" width="25" height="25"/>
+                            { filesHighlight }
                         </AccessibleButton>
                         <div className="mx_RightPanel_headerButton mx_RightPanel_collapsebutton" title="Hide panel" onClick={ this.onCollapseClick }>
                             <TintableSvg src="img/minimise.svg" width="10" height="16"/>
