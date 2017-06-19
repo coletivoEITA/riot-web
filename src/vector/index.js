@@ -302,17 +302,6 @@ async function loadApp() {
         configJson.themes = [{"label":"Light theme", "value": "light"}];
     }
 
-    if (!configJson.languages) {
-    	let languages;
-		try {
-			languages = await languageHandler.getAllLanguageKeysFromJson();
-		} catch (e) {
-			console.log("couldn't load languages from languages.json: error = "+e);
-			languages = ['en'];
-		}
-		configJson.languages = languages;
-    }
-
     if (window.localStorage && window.localStorage.getItem('mx_accepts_unsupported_browser')) {
         console.log('User has previously accepted risks in using an unsupported browser');
         validBrowser = true;
