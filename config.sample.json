@@ -20,7 +20,8 @@
     		"label": "Dark theme",
     		"value": "dark"
     	}
-    ]
+    ],
+    "welcomeUserId": "@riot-bot:matrix.org",
     "piwik": {
         "url": "https://piwik.riot.im/",
         "siteId": 1
