@@ -1,10 +1,12 @@
 const {clipboard, nativeImage, Menu, MenuItem, shell} = require('electron');
 const url = require('url');
 
+const MAILTO_PREFIX = "mailto:";
+
 const PERMITTED_URL_SCHEMES = [
     'http:',
     'https:',
-    'mailto:',
+    MAILTO_PREFIX,
 ];
 
 function safeOpenURL(target) {
@@ -35,16 +37,19 @@ function onLinkContextMenu(ev, params) {
     const url = params.linkURL || params.srcURL;
 
     const popupMenu = new Menu();
-    popupMenu.append(new MenuItem({
-        label: url,
-        click() {
-            safeOpenURL(url);
-        },
-    }));
+    // No point trying to open blob: URLs in an external browser: it ain't gonna work.
+    if (!url.startsWith('blob:')) {
+        popupMenu.append(new MenuItem({
+            label: url,
+            click() {
+                safeOpenURL(url);
+            },
+        }));
+    }
 
     if (params.mediaType && params.mediaType === 'image' && !url.startsWith('file://')) {
         popupMenu.append(new MenuItem({
-            label: 'Copy Image',
+            label: 'Copy image',
             click() {
                 if (url.startsWith('data:')) {
                     clipboard.writeImage(nativeImage.createFromDataURL(url));
@@ -55,13 +60,27 @@ function onLinkContextMenu(ev, params) {
         }));
     }
 
-    popupMenu.append(new MenuItem({
-        label: 'Copy Link Address',
-        click() {
-            clipboard.writeText(url);
-        },
-    }));
-    popupMenu.popup();
+    // No point offering to copy a blob: URL either
+    if (!url.startsWith('blob:')) {
+        // Special-case e-mail URLs to strip the `mailto:` like modern browsers do
+        if (url.startsWith(MAILTO_PREFIX)) {
+            popupMenu.append(new MenuItem({
+                label: 'Copy email address',
+                click() {
+                    clipboard.writeText(url.substr(MAILTO_PREFIX.length));
+                },
+            }));
+        } else {
+            popupMenu.append(new MenuItem({
+                label: 'Copy link address',
+                click() {
+                    clipboard.writeText(url);
+                },
+            }));
+        }
+    }
+    // popup() requires an options object even for no options
+    popupMenu.popup({});
     ev.preventDefault();
 }
 
@@ -88,7 +107,8 @@ function onSelectedContextMenu(ev, params) {
     const items = _CutCopyPasteSelectContextMenus(params);
     const popupMenu = Menu.buildFromTemplate(items);
 
-    popupMenu.popup();
+    // popup() requires an options object even for no options
+    popupMenu.popup({});
     ev.preventDefault();
 }
 
@@ -101,13 +121,26 @@ function onEditableContextMenu(ev, params) {
 
     const popupMenu = Menu.buildFromTemplate(items);
 
-    popupMenu.popup();
+    // popup() requires an options object even for no options
+    popupMenu.popup({});
     ev.preventDefault();
 }
 
 
 module.exports = (webContents) => {
     webContents.on('new-window', onWindowOrNavigate);
+    // XXX: The below now does absolutely nothing because of
+    // https://github.com/electron/electron/issues/8841
+    // Whilst this isn't a security issue since without
+    // node integration and with the sandbox, it should be
+    // no worse than opening the site in Chrome, it obviously
+    // means the user has to restart Riot to make it usable
+    // again (often unintuitive because it minimises to the
+    // system tray). We therefore need to be vigilant about
+    // putting target="_blank" on links in Riot (although
+    // we should generally be doing this anyway since links
+    // navigating you away from Riot in the browser is
+    // also annoying).
     webContents.on('will-navigate', onWindowOrNavigate);
 
     webContents.on('context-menu', function(ev, params) {

@@ -1,6 +1,7 @@
 /*
 Copyright 2015, 2016 OpenMarket Ltd
 Copyright 2017 Vector Creations Ltd
+Copyright 2018 New Vector Ltd
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,20 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-'use strict';
-
-// for ES6 stuff like startsWith() that Safari doesn't handle
-// and babel doesn't do by default
-// Note we use this, as well as the babel transform-runtime plugin
-// since transform-runtime does not cover instance methods
-// such as "foobar".includes("foo") which bits of our library
-// code use, but the babel transform-runtime plugin allows the
-// regenerator runtime to be injected early enough in the process
-// (it can't be here as it's too late: the alternative is to put
-// the babel-polyfill as the first 'entry' in the webpack config).
-// https://babeljs.io/docs/plugins/transform-runtime/
-require('babel-polyfill');
-
 // Require common CSS here; this will make webpack process it into bundle.css.
 // Our own CSS (which is themed) is imported via separate webpack entry points
 // in webpack.config.js
@@ -37,64 +24,63 @@ require('gfm.css/gfm.css');
 require('highlight.js/styles/github.css');
 require('draft-js/dist/Draft.css');
 
-const rageshake = require("./rageshake");
-rageshake.init().then(() => {
-    console.log("Initialised rageshake: See https://bugs.chromium.org/p/chromium/issues/detail?id=583193 to fix line numbers on Chrome.");
-    rageshake.cleanup();
-}, (err) => {
-    console.error("Failed to initialise rageshake: " + err);
-});
+import olmWasmPath from 'olm/olm.wasm';
 
-window.addEventListener('beforeunload', (e) => {
-    console.log('riot-web closing');
-    // try to flush the logs to indexeddb
-    rageshake.flush();
-});
+import './rageshakesetup';
 
-
- // add React and ReactPerf to the global namespace, to make them easier to
- // access via the console
-global.React = require("react");
+import React from 'react';
+// add React and ReactPerf to the global namespace, to make them easier to
+// access via the console
+global.React = React;
 if (process.env.NODE_ENV !== 'production') {
-    global.Perf = require("react-addons-perf");
+    global.Perf = require('react-addons-perf');
 }
 
-var RunModernizrTests = require("./modernizr"); // this side-effects a global
-var ReactDOM = require("react-dom");
-var sdk = require("matrix-react-sdk");
-const PlatformPeg = require("matrix-react-sdk/lib/PlatformPeg");
+import './modernizr';
+import ReactDOM from 'react-dom';
+import sdk from 'matrix-react-sdk';
+import PlatformPeg from 'matrix-react-sdk/lib/PlatformPeg';
 sdk.loadSkin(require('../component-index'));
-var VectorConferenceHandler = require('../VectorConferenceHandler');
+import VectorConferenceHandler from 'matrix-react-sdk/lib/VectorConferenceHandler';
 import Promise from 'bluebird';
-var request = require('browser-request');
-import * as UserSettingsStore from 'matrix-react-sdk/lib/UserSettingsStore';
+import request from 'browser-request';
 import * as languageHandler from 'matrix-react-sdk/lib/languageHandler';
 
 import url from 'url';
 
 import {parseQs, parseQsFromFragment} from './url_utils';
-import Platform from './platform';
+
+import ElectronPlatform from './platform/ElectronPlatform';
+import WebPlatform from './platform/WebPlatform';
 
 import MatrixClientPeg from 'matrix-react-sdk/lib/MatrixClientPeg';
+import SettingsStore from "matrix-react-sdk/lib/settings/SettingsStore";
+import Tinter from 'matrix-react-sdk/lib/Tinter';
+import SdkConfig from "matrix-react-sdk/lib/SdkConfig";
 
-var lastLocationHashSet = null;
+import Olm from 'olm';
 
-var CallHandler = require("matrix-react-sdk/lib/CallHandler");
-CallHandler.setConferenceHandler(VectorConferenceHandler);
+import CallHandler from 'matrix-react-sdk/lib/CallHandler';
 
-MatrixClientPeg.setIndexedDbWorkerScript(window.vector_indexeddb_worker_script);
+import {getVectorConfig} from './getconfig';
+
+let lastLocationHashSet = null;
+
+// Disable warnings for now: we use deprecated bluebird functions
+// and need to migrate, but they spam the console with warnings.
+Promise.config({warnings: false});
 
 function checkBrowserFeatures(featureList) {
     if (!window.Modernizr) {
         console.error("Cannot check features - Modernizr global is missing.");
         return false;
     }
-    var featureComplete = true;
-    for (var i = 0; i < featureList.length; i++) {
+    let featureComplete = true;
+    for (let i = 0; i < featureList.length; i++) {
         if (window.Modernizr[featureList[i]] === undefined) {
             console.error(
                 "Looked for feature '%s' but Modernizr has no results for this. " +
-                "Has it been configured correctly?", featureList[i]
+                "Has it been configured correctly?", featureList[i],
             );
             return false;
         }
@@ -108,11 +94,6 @@ function checkBrowserFeatures(featureList) {
     return featureComplete;
 }
 
-var validBrowser = checkBrowserFeatures([
-    "displaytable", "flexbox", "es5object", "es5function", "localstorage",
-    "objectfit", "indexeddb", "webworkers",
-]);
-
 // Parse the given window.location and return parameters that can be used when calling
 // MatrixChat.showScreen(screen, params)
 function getScreenFromLocation(location) {
@@ -120,7 +101,7 @@ function getScreenFromLocation(location) {
     return {
         screen: fragparts.location.substring(1),
         params: fragparts.params,
-    }
+    };
 }
 
 // Here, we do some crude URL analysis to allow
@@ -143,12 +124,12 @@ function onHashChange(ev) {
 
 // This will be called whenever the SDK changes screens,
 // so a web page can update the URL bar appropriately.
-var onNewScreen = function(screen) {
+function onNewScreen(screen) {
     console.log("newscreen "+screen);
-    var hash = '#/' + screen;
+    const hash = '#/' + screen;
     lastLocationHashSet = hash;
     window.location.hash = hash;
-};
+}
 
 // We use this to work out what URL the SDK should
 // pass through when registering to allow the user to
@@ -159,9 +140,9 @@ var onNewScreen = function(screen) {
 // If we're in electron, we should never pass through a file:// URL otherwise
 // the identity server will try to 302 the browser to it, which breaks horribly.
 // so in that instance, hardcode to use riot.im/app for now instead.
-var makeRegistrationUrl = function(params) {
+function makeRegistrationUrl(params) {
     let url;
-    if (window.location.protocol === "file:") {
+    if (window.location.protocol === "vector:") {
         url = 'https://riot.im/app/#/register';
     } else {
         url = (
@@ -185,49 +166,45 @@ var makeRegistrationUrl = function(params) {
     return url;
 }
 
-window.addEventListener('hashchange', onHashChange);
-
-function getConfig(configJsonFilename) {
-    let deferred = Promise.defer();
-
-    request(
-        { method: "GET", url: configJsonFilename },
-        (err, response, body) => {
-            if (err || response.status < 200 || response.status >= 300) {
-                // Lack of a config isn't an error, we should
-                // just use the defaults.
-                // Also treat a blank config as no config, assuming
-                // the status code is 0, because we don't get 404s
-                // from file: URIs so this is the only way we can
-                // not fail if the file doesn't exist when loading
-                // from a file:// URI.
-                if (response) {
-                    if (response.status == 404 || (response.status == 0 && body == '')) {
-                        deferred.resolve({});
+export function getConfig(configJsonFilename) {
+    return new Promise(function(resolve, reject) {
+        request(
+            { method: "GET", url: configJsonFilename },
+            (err, response, body) => {
+                if (err || response.status < 200 || response.status >= 300) {
+                    // Lack of a config isn't an error, we should
+                    // just use the defaults.
+                    // Also treat a blank config as no config, assuming
+                    // the status code is 0, because we don't get 404s
+                    // from file: URIs so this is the only way we can
+                    // not fail if the file doesn't exist when loading
+                    // from a file:// URI.
+                    if (response) {
+                        if (response.status == 404 || (response.status == 0 && body == '')) {
+                            resolve({});
+                        }
                     }
+                    reject({err: err, response: response});
+                    return;
                 }
-                deferred.reject({err: err, response: response});
-                return;
-            }
 
-            // We parse the JSON ourselves rather than use the JSON
-            // parameter, since this throws a parse error on empty
-            // which breaks if there's no config.json and we're
-            // loading from the filesystem (see above).
-            deferred.resolve(JSON.parse(body));
-        }
-    );
-
-    return deferred.promise;
+                // We parse the JSON ourselves rather than use the JSON
+                // parameter, since this throws a parse error on empty
+                // which breaks if there's no config.json and we're
+                // loading from the filesystem (see above).
+                resolve(JSON.parse(body));
+            },
+        );
+    });
 }
 
 function onTokenLoginCompleted() {
     // if we did a token login, we're now left with the token, hs and is
     // url as query params in the url; a little nasty but let's redirect to
     // clear them.
-    var parsedUrl = url.parse(window.location.href);
+    const parsedUrl = url.parse(window.location.href);
     parsedUrl.search = "";
-    var formatted = url.format(parsedUrl);
+    const formatted = url.format(parsedUrl);
     console.log("Redirecting to " + formatted + " to drop loginToken " +
                 "from queryparams");
     window.location.href = formatted;
@@ -266,31 +243,41 @@ function filterValidThemes(themes) {
 
 
 async function loadApp() {
+    if (window.vector_indexeddb_worker_script === undefined) {
+        // If this is missing, something has probably gone wrong with
+        // the bundling. The js-sdk will just fall back to accessing
+        // indexeddb directly with no worker script, but we want to
+        // make sure the indexeddb script is present, so fail hard.
+        throw new Error("Missing indexeddb worker script!");
+    }
+    MatrixClientPeg.setIndexedDbWorkerScript(window.vector_indexeddb_worker_script);
+    CallHandler.setConferenceHandler(VectorConferenceHandler);
+
+    window.addEventListener('hashchange', onHashChange);
+
+    await loadOlm();
+
     await loadLanguage();
 
     const fragparts = parseQsFromFragment(window.location);
     const params = parseQs(window.location);
 
-    // set the platform for react sdk (our Platform object automatically picks the right one)
-    PlatformPeg.set(new Platform());
+    // set the platform for react sdk
+    if (window.ipcRenderer) {
+        console.log("Using Electron platform");
+        const plaf = new ElectronPlatform();
+        PlatformPeg.set(plaf);
 
-    // don't try to redirect to the native apps if we're
-    // verifying a 3pid
-    const preventRedirect = Boolean(fragparts.params.client_secret);
-
-    if (!preventRedirect) {
-        if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
-            if (confirm(languageHandler._t("Riot is not supported on mobile web. Install the app?"))) {
-                window.location = "https://itunes.apple.com/us/app/vector.im/id1083446067";
-                return;
-            }
+        // Electron only: see if we need to do a one-time data
+        // migration
+        if (window.localStorage.getItem('mx_user_id') === null) {
+            console.log("Migrating session from old origin...");
+            await plaf.migrateFromOldOrigin();
+            console.log("Origin migration complete");
         }
-        else if (/Android/.test(navigator.userAgent)) {
-            if (confirm(languageHandler._t("Riot is not supported on mobile web. Install the app?"))) {
-                window.location = "https://play.google.com/store/apps/details?id=im.vector.alpha";
-                return;
-            }
-        }
+    } else {
+        console.log("Using Web platform");
+        PlatformPeg.set(new WebPlatform());
     }
 
     // Load the config file. First try to load up a domain-specific config of the
@@ -298,15 +285,7 @@ async function loadApp() {
     let configJson;
     let configError;
     try {
-        try {
-            configJson = await getConfig(`config.${document.domain}.json`);
-            // 404s succeed with an empty json config, so check that there are keys
-            if (Object.keys(configJson).length === 0) {
-                throw new Error(); // throw to enter the catch
-            }
-        } catch (e) {
-            configJson = await getConfig("config.json");
-        }
+        configJson = await getVectorConfig();
     } catch (e) {
         configError = e;
     }
@@ -317,17 +296,86 @@ async function loadApp() {
         configJson.themes = [{"label":"Light theme", "value": "light"}];
     }
 
-    if (window.localStorage && window.localStorage.getItem('mx_accepts_unsupported_browser')) {
-        console.log('User has previously accepted risks in using an unsupported browser');
-        validBrowser = true;
+    // XXX: We call this twice, once here and once in MatrixChat as a prop. We call it here to ensure
+    // granular settings are loaded correctly and to avoid duplicating the override logic for the theme.
+    SdkConfig.put(configJson);
+
+    // don't try to redirect to the native apps if we're
+    // verifying a 3pid (but after we've loaded the config)
+    // or if the user is following a deep link
+    // (https://github.com/vector-im/riot-web/issues/7378)
+    const preventRedirect = fragparts.params.client_secret || fragparts.location.length > 0;
+
+    if (!preventRedirect) {
+        const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isAndroid = /Android/.test(navigator.userAgent);
+        if (isIos || isAndroid) {
+            if (!document.cookie.split(';').some((c) => c.startsWith('mobile_redirect_to_guide'))) {
+                window.location = "mobile_guide/";
+                return;
+            }
+        }
     }
+
+    // as quickly as we possibly can, set a default theme...
+    let a;
+    const theme = SettingsStore.getValue("theme");
+    for (let i = 0; (a = document.getElementsByTagName("link")[i]); i++) {
+        const href = a.getAttribute("href");
+        if (!href) continue;
+        // shouldn't we be using the 'title' tag rather than the href?
+        const match = href.match(/^bundles\/.*\/theme-(.*)\.css$/);
+        if (match) {
+            if (match[1] === theme) {
+                // remove the disabled flag off the stylesheet
+
+                // Firefox requires setting the attribute to false, so do
+                // that instead of removing it. Related:
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=1281135
+                a.disabled = false;
+
+                // in case the Tinter.tint() in MatrixChat fires before the
+                // CSS has actually loaded (which in practice happens)...
+
+                // This if fixes Tinter.setTheme to not fire on Firefox
+                // in case it is the first time loading Riot.
+                // `InstallTrigger` is a Object which only exists on Firefox
+                // (it is used for their Plugins) and can be used as a
+                // feature check.
+                // Firefox loads css always before js. This is why we dont use
+                // onload or it's EventListener as thoose will never trigger.
+                if (typeof InstallTrigger !== 'undefined') {
+                    Tinter.setTheme(theme);
+                } else {
+                    // FIXME: we should probably block loading the app or even
+                    // showing a spinner until the theme is loaded, to avoid
+                    // flashes of unstyled content.
+                    a.onload = () => {
+                        Tinter.setTheme(theme);
+                    };
+                }
+            } else {
+                // Firefox requires this to not be done via `setAttribute`
+                // or via HTML.
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=1281135
+                a.disabled = true;
+            }
+        }
+    }
+
+    const validBrowser = checkBrowserFeatures([
+        "displaytable", "flexbox", "es5object", "es5function", "localstorage",
+        "objectfit", "indexeddb", "webworkers",
+    ]);
+
+    const acceptInvalidBrowser = window.localStorage && window.localStorage.getItem('mx_accepts_unsupported_browser');
 
     console.log("Vector starting at "+window.location);
     if (configError) {
         window.matrixChat = ReactDOM.render(<div className="error">
             Unable to load config file: please refresh the page to try again.
         </div>, document.getElementById('matrixchat'));
-    } else if (validBrowser) {
+    } else if (validBrowser || acceptInvalidBrowser) {
         const platform = PlatformPeg.get();
         platform.startUpdater();
 
@@ -341,31 +389,67 @@ async function loadApp() {
                 themeStyleElements={getThemeStyleElements()}
                 realQueryParams={params}
                 startingFragmentQueryParams={fragparts.params}
-                enableGuest={true}
+                enableGuest={!configJson.disable_guests}
                 onTokenLoginCompleted={onTokenLoginCompleted}
                 initialScreenAfterLogin={getScreenFromLocation(window.location)}
                 defaultDeviceDisplayName={platform.getDefaultDeviceDisplayName()}
             />,
-            document.getElementById('matrixchat')
+            document.getElementById('matrixchat'),
         );
     } else {
         console.error("Browser is missing required features.");
         // take to a different landing page to AWOOOOOGA at the user
-        var CompatibilityPage = sdk.getComponent("structures.CompatibilityPage");
+        const CompatibilityPage = sdk.getComponent("structures.CompatibilityPage");
         window.matrixChat = ReactDOM.render(
             <CompatibilityPage onAccept={function() {
                 if (window.localStorage) window.localStorage.setItem('mx_accepts_unsupported_browser', true);
-                validBrowser = true;
                 console.log("User accepts the compatibility risks.");
                 loadApp();
             }} />,
-            document.getElementById('matrixchat')
+            document.getElementById('matrixchat'),
         );
     }
 }
 
+function loadOlm() {
+    /* Load Olm. We try the WebAssembly version first, and then the legacy,
+     * asm.js version if that fails. For this reason we need to wait for this
+     * to finish before continuing to load the rest of the app. In future
+     * we could somehow pass a promise down to react-sdk and have it wait on
+     * that so olm can be loading in parallel with the rest of the app.
+     *
+     * We also need to tell the Olm js to look for its wasm file at the same
+     * level as index.html. It really should be in the same place as the js,
+     * ie. in the bundle directory, but as far as I can tell this is
+     * completely impossible with webpack. We do, however, use a hashed
+     * filename to avoid caching issues.
+     */
+    return Olm.init({
+        locateFile: () => olmWasmPath,
+    }).then(() => {
+        console.log("Using WebAssembly Olm");
+    }).catch((e) => {
+        console.log("Failed to load Olm: trying legacy version");
+        return new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'olm_legacy.js'; // XXX: This should be cache-busted too
+            s.onload = resolve;
+            s.onerror = reject;
+            document.body.appendChild(s);
+        }).then(() => {
+            // Init window.Olm, ie. the one just loaded by the script tag,
+            // not 'Olm' which is still the failed wasm version.
+            return window.Olm.init();
+        }).then(() => {
+            console.log("Using legacy Olm");
+        }).catch((e) => {
+            console.log("Both WebAssembly and asm.js Olm failed!", e);
+        });
+    });
+}
+
 async function loadLanguage() {
-    const prefLang = UserSettingsStore.getLocalSetting('language');
+    const prefLang = SettingsStore.getValue("language", null, /*excludeDefault=*/true);
     let langs = [];
 
     if (!prefLang) {
@@ -377,6 +461,7 @@ async function loadLanguage() {
     }
     try {
         await languageHandler.setLanguage(langs);
+        document.documentElement.setAttribute("lang", languageHandler.getCurrentLanguage());
     } catch (e) {
         console.error("Unable to set language", e);
     }
