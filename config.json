@@ -37,7 +37,7 @@
         "siteId": 5
     },
     "embeddedPages": {
-        "welcomeUrl": "rios_home.html",
+        "welcomeUrl": "themes/rios/home_rios.html",
         "homeUrl": ""
     },
     "welcomeUserId": "@bot:chat.rios.org.br",
