@@ -17,65 +17,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import VectorBasePlatform from './VectorBasePlatform';
-import Favico from 'favico.js';
+import VectorBasePlatform, {updateCheckStatusEnum} from './VectorBasePlatform';
 import request from 'browser-request';
 import dis from 'matrix-react-sdk/lib/dispatcher.js';
-import q from 'q';
+import { _t } from 'matrix-react-sdk/lib/languageHandler';
+import Promise from 'bluebird';
 
 import url from 'url';
 import UAParser from 'ua-parser-js';
+
+const POKE_RATE_MS = 10 * 60 * 1000; // 10 min
 
 export default class WebPlatform extends VectorBasePlatform {
     constructor() {
         super();
         this.runningVersion = null;
-        // The 'animations' are really low framerate and look terrible.
-        // Also it re-starts the animationb every time you set the badge,
-        // and we set the state each time, even if the value hasn't changed,
-        // so we'd need to fix that if enabling the animation.
-        this.favicon = new Favico({animation: 'none'});
-        this._updateFavicon();
+
+        this.startUpdateCheck = this.startUpdateCheck.bind(this);
+        this.stopUpdateCheck = this.stopUpdateCheck.bind(this);
     }
 
-    _updateFavicon() {
-        try {
-            // This needs to be in in a try block as it will throw
-            // if there are more than 100 badge count changes in
-            // its internal queue
-            let bgColor = "#d00",
-                notif = this.notificationCount;
-
-            if (this.errorDidOccur) {
-                notif = notif || "×";
-                bgColor = "#f00";
-            }
-
-            this.favicon.badge(notif, {
-                bgColor: bgColor
-            });
-        } catch (e) {
-            console.warn(`Failed to set badge count: ${e.message}`);
-        }
-    }
-
-    setNotificationCount(count: number) {
-        if (this.notificationCount === count) return;
-        super.setNotificationCount(count);
-        this._updateFavicon();
-    }
-
-    setErrorStatus(errorDidOccur: boolean) {
-        if (this.errorDidOccur === errorDidOccur) return;
-        super.setErrorStatus(errorDidOccur);
-        this._updateFavicon();
+    getHumanReadableName(): string {
+        return 'Web Platform'; // no translation required: only used for analytics
     }
 
     /**
      * Returns true if the platform supports displaying
      * notifications, otherwise false.
      */
-    supportsNotifications() : boolean {
+    supportsNotifications(): boolean {
         return Boolean(global.Notification);
     }
 
@@ -83,8 +53,8 @@ export default class WebPlatform extends VectorBasePlatform {
      * Returns true if the application currently has permission
      * to display notifications. Otherwise false.
      */
-    maySendNotifications() : boolean {
-        return global.Notification.permission == 'granted';
+    maySendNotifications(): boolean {
+        return global.Notification.permission === 'granted';
     }
 
     /**
@@ -94,15 +64,15 @@ export default class WebPlatform extends VectorBasePlatform {
      * that is 'granted' if the user allowed the request or
      * 'denied' otherwise.
      */
-    requestNotificationPermission() : Promise {
+    requestNotificationPermission(): Promise<string> {
         // annoyingly, the latest spec says this returns a
         // promise, but this is only supported in Chrome 46
         // and Firefox 47, so adapt the callback API.
-        const defer = q.defer();
-        global.Notification.requestPermission((result) => {
-            defer.resolve(result);
+        return new Promise(function(resolve, reject) {
+            global.Notification.requestPermission((result) => {
+                resolve(result);
+            });
         });
-        return defer.promise;
     }
 
     displayNotification(title: string, msg: string, avatarUrl: string, room: Object) {
@@ -113,13 +83,13 @@ export default class WebPlatform extends VectorBasePlatform {
                 icon: avatarUrl,
                 tag: "vector",
                 silent: true, // we play our own sounds
-            }
+            },
         );
 
         notification.onclick = function() {
             dis.dispatch({
                 action: 'view_room',
-                room_id: room.roomId
+                room_id: room.roomId,
             });
             global.focus();
             notification.close();
@@ -132,77 +102,107 @@ export default class WebPlatform extends VectorBasePlatform {
         }, 5 * 1000);
     }
 
-    _getVersion() {
-        const deferred = q.defer();
-
+    _getVersion(): Promise<string> {
         // We add a cachebuster to the request to make sure that we know about
         // the most recent version on the origin server. That might not
         // actually be the version we'd get on a reload (particularly in the
         // presence of intermediate caching proxies), but still: we're trying
         // to tell the user that there is a new version.
-        request(
-            {
-                method: "GET",
-                url: "version",
-                qs: { cachebuster: Date.now() },
-            },
-            (err, response, body) => {
-                if (err || response.status < 200 || response.status >= 300) {
-                    if (err == null) err = { status: response.status };
-                    deferred.reject(err);
-                    return;
-                }
 
-                const ver = body.trim();
-                deferred.resolve(ver);
-            }
-        );
-        return deferred.promise;
+        return new Promise(function(resolve, reject) {
+            request(
+                {
+                    method: "GET",
+                    url: "version",
+                    qs: { cachebuster: Date.now() },
+                },
+                (err, response, body) => {
+                    if (err || response.status < 200 || response.status >= 300) {
+                        if (err === null) err = { status: response.status };
+                        reject(err);
+                        return;
+                    }
+
+                    const ver = body.trim();
+                    resolve(ver);
+                },
+            );
+        });
     }
 
-    getAppVersion() {
+    getAppVersion(): Promise<string> {
         if (this.runningVersion !== null) {
-            return q(this.runningVersion);
+            return Promise.resolve(this.runningVersion);
         }
         return this._getVersion();
     }
 
+    startUpdater() {
+        this.pollForUpdate();
+        setInterval(this.pollForUpdate.bind(this), POKE_RATE_MS);
+    }
+
+    async canSelfUpdate(): boolean {
+        return true;
+    }
+
     pollForUpdate() {
-        this._getVersion().done((ver) => {
-            if (this.runningVersion == null) {
+        return this._getVersion().then((ver) => {
+            if (this.runningVersion === null) {
                 this.runningVersion = ver;
-            } else if (this.runningVersion != ver) {
+            } else if (this.runningVersion !== ver) {
                 dis.dispatch({
                     action: 'new_version',
                     currentVersion: this.runningVersion,
                     newVersion: ver,
                 });
+                // Return to skip a MatrixChat state update
+                return;
             }
+            return { status: updateCheckStatusEnum.NOTAVAILABLE };
         }, (err) => {
             console.error("Failed to poll for update", err);
+            return {
+                status: updateCheckStatusEnum.ERROR,
+                detail: err.message || err.status ? err.status.toString() : 'Unknown Error',
+            };
+        });
+    }
+
+    startUpdateCheck() {
+        if (this.showUpdateCheck) return;
+        super.startUpdateCheck();
+        this.pollForUpdate().then((updateState) => {
+            if (!this.showUpdateCheck) return;
+            if (!updateState) return;
+            dis.dispatch({
+                action: 'check_updates',
+                value: updateState,
+            });
         });
     }
 
     installUpdate() {
-        window.location.reload();
+        window.location.reload(true);
     }
 
-    getDefaultDeviceDisplayName() {
+    getDefaultDeviceDisplayName(): string {
         // strip query-string and fragment from uri
-        let u = url.parse(window.location.href);
+        const u = url.parse(window.location.href);
         u.search = "";
         u.hash = "";
-        let app_name = u.format();
+        const appName = u.format();
 
-        let ua = new UAParser();
-        return app_name + " via " + ua.getBrowser().name +
-            " on " + ua.getOS().name;
+        const ua = new UAParser();
+        const browserName = ua.getBrowser().name || "unknown browser";
+        const osName = ua.getOS().name || "unknown os";
+        return _t('%(appName)s via %(browserName)s on %(osName)s', {appName: appName, browserName: browserName, osName: osName});
     }
 
-    screenCaptureErrorString() {
+    screenCaptureErrorString(): ?string {
         // it won't work at all if you're not on HTTPS so whine whine whine
         if (!global.window || global.window.location.protocol !== "https:") {
-            return "You need to be using HTTPS to place a screen-sharing call.";
+            return _t("You need to be using HTTPS to place a screen-sharing call.");
         }
         return null;
     }

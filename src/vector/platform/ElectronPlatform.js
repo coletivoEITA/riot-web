@@ -3,6 +3,7 @@
 /*
 Copyright 2016 Aviral Dasgupta
 Copyright 2016 OpenMarket Ltd
+Copyright 2018 New Vector Ltd
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,130 +18,254 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import VectorBasePlatform from './VectorBasePlatform';
+import VectorBasePlatform, {updateCheckStatusEnum} from './VectorBasePlatform';
 import dis from 'matrix-react-sdk/lib/dispatcher';
-import q from 'q';
+import { _t } from 'matrix-react-sdk/lib/languageHandler';
+import Promise from 'bluebird';
+import rageshake from 'matrix-react-sdk/lib/rageshake/rageshake';
 
-const electron = require('electron');
-const remote = electron.remote;
+const ipcRenderer = window.ipcRenderer;
 
-electron.remote.autoUpdater.on('update-downloaded', onUpdateDownloaded);
-
-function onUpdateDownloaded(ev, releaseNotes, ver, date, updateURL) {
-    dis.dispatch({
-        action: 'new_version',
-        currentVersion: electron.remote.app.getVersion(),
-        newVersion: ver,
-        releaseNotes: releaseNotes,
-    });
+function platformFriendlyName(): string {
+    // used to use window.process but the same info is available here
+    if (navigator.userAgent.includes('Macintosh')) {
+        return 'macOS';
+    } else if (navigator.userAgent.includes('FreeBSD')) {
+        return 'FreeBSD';
+    } else if (navigator.userAgent.includes('OpenBSD')) {
+        return 'OpenBSD';
+    } else if (navigator.userAgent.includes('SunOS')) {
+        return 'SunOS';
+    } else if (navigator.userAgent.includes('Windows')) {
+        return 'Windows';
+    } else if (navigator.userAgent.includes('Linux')) {
+        return 'Linux';
+    } else {
+        return 'Unknown';
+    }
 }
 
-function platformFriendlyName() {
-    console.log(window.process);
-    switch (window.process.platform) {
-        case 'darwin':
-            return 'macOS';
-        case 'freebsd':
-            return 'FreeBSD';
-        case 'openbsd':
-            return 'OpenBSD';
-        case 'sunos':
-            return 'SunOS';
-        case 'win32':
-            return 'Windows';
-        default:
-            // Sorry, Linux users: you get lumped into here,
-            // but only because Linux's capitalisation is
-            // normal. We do care about you.
-            return window.process.platform[0].toUpperCase() + window.process.platform.slice(1);
+function _onAction(payload: Object) {
+    // Whitelist payload actions, no point sending most across
+    if (['call_state'].includes(payload.action)) {
+        ipcRenderer.send('app_onAction', payload);
+    }
+}
+
+function getUpdateCheckStatus(status) {
+    if (status === true) {
+        return { status: updateCheckStatusEnum.DOWNLOADING };
+    } else if (status === false) {
+        return { status: updateCheckStatusEnum.NOTAVAILABLE };
+    } else {
+        return {
+            status: updateCheckStatusEnum.ERROR,
+            detail: status,
+        };
     }
 }
 
 export default class ElectronPlatform extends VectorBasePlatform {
+    constructor() {
+        super();
+
+        this._pendingIpcCalls = {};
+        this._nextIpcCallId = 0;
+
+        dis.register(_onAction);
+        /*
+            IPC Call `check_updates` returns:
+            true if there is an update available
+            false if there is not
+            or the error if one is encountered
+         */
+        ipcRenderer.on('check_updates', (event, status) => {
+            if (!this.showUpdateCheck) return;
+            dis.dispatch({
+                action: 'check_updates',
+                value: getUpdateCheckStatus(status),
+            });
+            this.showUpdateCheck = false;
+        });
+
+        // try to flush the rageshake logs to indexeddb before quit.
+        ipcRenderer.on('before-quit', function() {
+            console.log('riot-desktop closing');
+            rageshake.flush();
+        });
+
+        ipcRenderer.on('ipcReply', this._onIpcReply.bind(this));
+        ipcRenderer.on('update-downloaded', this.onUpdateDownloaded.bind(this));
+
+        this.startUpdateCheck = this.startUpdateCheck.bind(this);
+        this.stopUpdateCheck = this.stopUpdateCheck.bind(this);
+    }
+
+    async onUpdateDownloaded(ev, updateInfo) {
+        dis.dispatch({
+            action: 'new_version',
+            currentVersion: await this.getAppVersion(),
+            newVersion: updateInfo,
+            releaseNotes: updateInfo.releaseNotes,
+        });
+    }
+
+    getHumanReadableName(): string {
+        return 'Electron Platform'; // no translation required: only used for analytics
+    }
+
     setNotificationCount(count: number) {
         if (this.notificationCount === count) return;
         super.setNotificationCount(count);
-        // this sometimes throws because electron is made of fail:
-        // https://github.com/electron/electron/issues/7351
-        // For now, let's catch the error, but I suspect it may
-        // continue to fail and we might just have to accept that
-        // electron's remote RPC is a non-starter for now and use IPC
-        try {
-            remote.app.setBadgeCount(count);
-        } catch (e) {
-            console.error("Failed to set notification count", e);
-        }
+
+        ipcRenderer.send('setBadgeCount', count);
     }
 
-    supportsNotifications() : boolean {
+    supportsNotifications(): boolean {
         return true;
     }
 
-    maySendNotifications() : boolean {
+    maySendNotifications(): boolean {
         return true;
     }
 
     displayNotification(title: string, msg: string, avatarUrl: string, room: Object): Notification {
+        // GNOME notification spec parses HTML tags for styling...
+        // Electron Docs state all supported linux notification systems follow this markup spec
+        // https://github.com/electron/electron/blob/master/docs/tutorial/desktop-environment-integration.md#linux
+        // maybe we should pass basic styling (italics, bold, underline) through from MD
+        // we only have to strip out < and > as the spec doesn't include anything about things like &amp;
+        // so we shouldn't assume that all implementations will treat those properly. Very basic tag parsing is done.
+        if (navigator.userAgent.includes('Linux')) {
+            msg = msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
         // Notifications in Electron use the HTML5 notification API
         const notification = new global.Notification(
             title,
             {
                 body: msg,
                 icon: avatarUrl,
-                tag: "vector",
                 silent: true, // we play our own sounds
-            }
+            },
         );
 
-        notification.onclick = function() {
+        notification.onclick = () => {
             dis.dispatch({
                 action: 'view_room',
-                room_id: room.roomId
+                room_id: room.roomId,
             });
             global.focus();
-            const currentWin = electron.remote.getCurrentWindow();
-            currentWin.show();
-            currentWin.restore();
-            currentWin.focus();
+            this._ipcCall('focusWindow');
         };
 
         return notification;
+    }
+
+    loudNotification(ev: Event, room: Object) {
+        ipcRenderer.send('loudNotification');
     }
 
     clearNotification(notif: Notification) {
         notif.close();
     }
 
-    getAppVersion() {
-        return q(electron.remote.app.getVersion());
+    async getAppVersion(): Promise<string> {
+        return await this._ipcCall('getAppVersion');
     }
 
-    pollForUpdate() {
-        // In electron we control the update process ourselves, since
-        // it needs to run in the main process, so we just run the timer
-        // loop in the main electron process instead.
+    supportsAutoLaunch(): boolean {
+        return true;
+    }
+
+    async getAutoLaunchEnabled(): boolean {
+        return await this._ipcCall('getAutoLaunchEnabled');
+    }
+
+    async setAutoLaunchEnabled(enabled: boolean): void {
+        return await this._ipcCall('setAutoLaunchEnabled', enabled);
+    }
+
+    supportsMinimizeToTray(): boolean {
+        return true;
+    }
+
+    async getMinimizeToTrayEnabled(): boolean {
+        return await this._ipcCall('getMinimizeToTrayEnabled');
+    }
+
+    async setMinimizeToTrayEnabled(enabled: boolean): void {
+        return await this._ipcCall('setMinimizeToTrayEnabled', enabled);
+    }
+
+    async canSelfUpdate(): boolean {
+        const feedUrl = await this._ipcCall('getUpdateFeedUrl');
+        return Boolean(feedUrl);
+    }
+
+    startUpdateCheck() {
+        if (this.showUpdateCheck) return;
+        super.startUpdateCheck();
+
+        ipcRenderer.send('check_updates');
     }
 
     installUpdate() {
         // IPC to the main process to install the update, since quitAndInstall
         // doesn't fire the before-quit event so the main process needs to know
         // it should exit.
-        electron.ipcRenderer.send('install_update');
+        ipcRenderer.send('install_update');
     }
 
-    getDefaultDeviceDisplayName() {
-        return "Riot Desktop on " + platformFriendlyName();
+    getDefaultDeviceDisplayName(): string {
+        return _t('Riot Desktop on %(platformName)s', { platformName: platformFriendlyName() });
     }
 
-    screenCaptureErrorString() {
+    screenCaptureErrorString(): ?string {
         return null;
     }
 
-    requestNotificationPermission() : Promise {
-        return q('granted');
+    requestNotificationPermission(): Promise<string> {
+        return Promise.resolve('granted');
     }
 
     reload() {
-        electron.remote.getCurrentWebContents().reload();
+        // we used to remote to the main process to get it to
+        // reload the webcontents, but in practice this is unnecessary:
+        // the normal way works fine.
+        window.location.reload(false);
+    }
+
+    async migrateFromOldOrigin() {
+        return this._ipcCall('origin_migrate');
+    }
+
+    async _ipcCall(name, ...args) {
+        const ipcCallId = ++this._nextIpcCallId;
+        return new Promise((resolve, reject) => {
+            this._pendingIpcCalls[ipcCallId] = {resolve, reject};
+            window.ipcRenderer.send('ipcCall', {id: ipcCallId, name, args});
+            // Maybe add a timeout to these? Probably not necessary.
+        });
+    }
+
+    _onIpcReply(ev, payload) {
+        if (payload.id === undefined) {
+            console.warn("Ignoring IPC reply with no ID");
+            return;
+        }
+
+        if (this._pendingIpcCalls[payload.id] === undefined) {
+            console.warn("Unknown IPC payload ID: " + payload.id);
+            return;
+        }
+
+        const callbacks = this._pendingIpcCalls[payload.id];
+        delete this._pendingIpcCalls[payload.id];
+        if (payload.error) {
+            callbacks.reject(payload.error);
+        } else {
+            callbacks.resolve(payload.reply);
+        }
     }
 }
