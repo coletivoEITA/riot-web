@@ -47,5 +47,6 @@
         "https://app.rios.org.br",
         "https://corais.rios.org.br",
         "http://localhost"
-    ]
+    ],
+    "disable_custom_urls": true
 }
