@@ -48,5 +48,8 @@
         "https://corais.rios.org.br",
         "http://localhost"
     ],
-    "disable_custom_urls": true
+    "disable_custom_urls": true,
+    "send_unread_notifications_to_parent": {
+        "parent_origin": "https://app.rios.org.br"
+    }
 }
