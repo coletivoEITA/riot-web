@@ -17,8 +17,8 @@ limitations under the License.
 'use strict';
 
 import React from 'react';
-import sdk from 'matrix-react-sdk/lib/index';
-import SdkConfig from 'matrix-react-sdk/lib/SdkConfig';
+import * as sdk from 'matrix-react-sdk/src/index';
+import SdkConfig from 'matrix-react-sdk/src/SdkConfig';
 
 export default class VectorAuthPage extends React.PureComponent {
     static replaces = 'AuthPage'
@@ -29,7 +29,11 @@ export default class VectorAuthPage extends React.PureComponent {
         const brandingConfig = SdkConfig.get().branding;
         let backgroundUrl = "themes/riot/img/backgrounds/valley.jpg";
         if (brandingConfig && brandingConfig.welcomeBackgroundUrl) {
-            backgroundUrl = brandingConfig.welcomeBackgroundUrl;
+            if (Array.isArray(brandingConfig.welcomeBackgroundUrl)) {
+                backgroundUrl = brandingConfig.welcomeBackgroundUrl[Math.floor(Math.random() * brandingConfig.welcomeBackgroundUrl.length)];
+            } else {
+                backgroundUrl = brandingConfig.welcomeBackgroundUrl;
+            }
         }
 
         const pageStyle = {

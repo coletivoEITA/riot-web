@@ -1,11 +1,31 @@
 Riot
 ====
 
-Riot (formerly known as Vector) is a Matrix web client built using the [Matrix React SDK](https://github.com/matrix-org/matrix-react-sdk).
+Riot (formerly known as Vector) is a Matrix web client built using the [Matrix
+React SDK](https://github.com/matrix-org/matrix-react-sdk).
 
-Riot is officially supported on the web in modern versions of Chrome, Firefox, and Safari. Other browsers may work, however
-official support is not provided. For accessing Riot on an Android or iOS device, check out [riot-android](https://github.com/vector-im/riot-android)
-and [riot-ios](https://github.com/vector-im/riot-ios) - riot-web does not support mobile devices.
+Supported Environments
+======================
+
+Riot has several tiers of support for different environments:
+
+* Supported
+  * Definition: Issues **actively triaged**, regressions **block** the release
+  * Last 2 major versions of Chrome, Firefox, and Safari on desktop OSes
+  * Latest release of official Riot Desktop app on desktop OSes
+  * Desktop OSes means macOS, Windows, and Linux versions for desktop devices
+    that are actively supported by the OS vendor and receive security updates
+* Experimental
+  * Definition: Issues **accepted**, regressions **do not block** the release
+  * Riot as an installed PWA via current stable version of Chrome, Firefox, and Safari
+  * Mobile web for current stable version of Chrome, Firefox, and Safari on Android, iOS, and iPadOS
+* Not supported
+  * Definition: Issues only affecting unsupported environments are **closed**
+  * Everything else
+
+For accessing Riot on an Android or iOS device, we currently recommend the
+native apps [riot-android](https://github.com/vector-im/riot-android)
+and [riot-ios](https://github.com/vector-im/riot-ios).
 
 Getting Started
 ===============
@@ -20,6 +40,7 @@ released version of Riot:
 1. Download the latest version from https://github.com/vector-im/riot-web/releases
 1. Untar the tarball on your web server
 1. Move (or symlink) the `riot-x.x.x` directory to an appropriate name
+1. Configure the correct caching headers in your webserver (see below)
 1. If desired, copy `config.sample.json` to `config.json` and edit it
    as desired. See the [configuration docs](docs/config.md) for details.
 1. Enter the URL into your browser and log into Riot!
@@ -27,9 +48,12 @@ released version of Riot:
 Releases are signed using gpg and the OpenPGP standard, and can be checked against the public key located
 at https://packages.riot.im/riot-release-key.asc.
 
-Note that Chrome does not allow microphone or webcam access for sites served
-over http (except localhost), so for working VoIP you will need to serve Riot
-over https.
+Note that for the security of your chats will need to serve Riot
+over HTTPS. Major browsers also do not allow you to use VoIP/video
+chats over HTTP, as WebRTC is only usable over HTTPS.
+There are some exceptions like when using localhost, which is
+considered a [secure context](https://developer.mozilla.org/docs/Web/Security/Secure_Contexts)
+and thus allowed.
 
 To install Riot as a desktop application, see [Running as a desktop
 app](#running-as-a-desktop-app) below.
@@ -47,15 +71,6 @@ We have put some coarse mitigations into place to try to protect against this
 situation, but it's still not good practice to do it in the first place.  See
 https://github.com/vector-im/riot-web/issues/1977 for more details.
 
-The same applies for end-to-end encrypted content, but since this is decrypted
-on the client, Riot needs a way to supply the decrypted content from a separate
-origin to the one Riot is hosted on. This currently done with a 'cross origin
-renderer' which is a small piece of javascript hosted on a different domain.
-To avoid all Riot installs needing one of these to be set up, riot.im hosts
-one on usercontent.riot.im which is used by default.
-https://github.com/vector-im/riot-web/issues/6173 tracks progress on replacing
-this with something better.
-
 Building From Source
 ====================
 
@@ -63,33 +78,18 @@ Riot is a modular webapp built with modern ES6 and uses a Node.js build system.
 Ensure you have the latest LTS version of Node.js installed.
 
 Using `yarn` instead of `npm` is recommended. Please see the Yarn [install
-guide](https://yarnpkg.com/docs/install/) if you do not have it already.
+guide](https://classic.yarnpkg.com/en/docs/install) if you do not have it already.
 
 1. Install or update `node.js` so that your `node` is at least v10.x.
 1. Install `yarn` if not present already.
 1. Clone the repo: `git clone https://github.com/vector-im/riot-web.git`.
 1. Switch to the riot-web directory: `cd riot-web`.
 1. Install the prerequisites: `yarn install`.
-1. If you're using the `develop` branch then it is recommended to set up a proper
-   development environment ("Setting up a dev environment" below) however one can
-   install the develop versions of the dependencies instead:
-   ```bash
-   scripts/fetch-develop.deps.sh
-   ```
-   Whenever you git pull on `riot-web` you will also probably need to force an update
-   to these dependencies - the simplest way is to re-run the script, but you can also
-   manually update and rebuild them:
-   ```bash
-   cd matrix-js-sdk
-   git pull
-   yarn install # re-run to pull in any new dependencies
-   cd ../matrix-react-sdk
-   git pull
-   yarn install
-   ```
-   Or just use https://riot.im/develop - the continuous integration release of the
-   develop branch. (Note that we don't reference the develop versions in git directly
-   due to https://github.com/npm/npm/issues/3055.)
+   *  If you're using the `develop` branch, then it is recommended to set up a
+      proper development environment (see [Setting up a dev
+      environment](#setting-up-a-dev-environment) below). Alternatively, you
+      can use https://riot.im/develop - the continuous integration release of
+      the develop branch.
 1. Configure the app by copying `config.sample.json` to `config.json` and
    modifying it. See the [configuration docs](docs/config.md) for details.
 1. `yarn dist` to build a tarball to deploy. Untaring this file will give
@@ -108,40 +108,7 @@ Riot can also be run as a desktop app, wrapped in Electron. You can download a
 pre-built version from https://riot.im/download/desktop/ or, if you prefer,
 build it yourself.
 
-To build it yourself, follow the instructions below.
-
-1. Follow the instructions in 'Building From Source' above, but run
-   `yarn build` instead of `yarn dist` (since we don't need the tarball).
-2. Install Electron and run it:
-
-   ```bash
-   yarn electron
-   ```
-
-To build packages, use `electron-builder`. This is configured to output:
- * `dmg` + `zip` for macOS
- * `exe` + `nupkg` for Windows
- * `deb` for Linux
-But this can be customised by editing the `build` section of package.json
-as per https://github.com/electron-userland/electron-builder/wiki/Options
-
-See https://github.com/electron-userland/electron-builder/wiki/Multi-Platform-Build
-for dependencies required for building packages for various platforms.
-
-The only platform that can build packages for all three platforms is macOS:
-```bash
-brew install mono
-yarn install
-yarn build:electron
-```
-
-For other packages, use `electron-builder` manually. For example, to build a
-package for 64 bit Linux:
-
- 1. Follow the instructions in 'Building From Source' above
- 2. `node_modules/.bin/build -l --x64`
-
-All Electron packages go into `electron_app/dist/`
+To build it yourself, follow the instructions at https://github.com/vector-im/riot-desktop.
 
 Many thanks to @aviraldg for the initial work on the Electron integration.
 
@@ -212,12 +179,29 @@ Labs Features
 Some features of Riot may be enabled by flags in the `Labs` section of the settings.
 Some of these features are described in [labs.md](https://github.com/vector-im/riot-web/blob/develop/docs/labs.md).
 
+Caching requirements
+====================
+
+Riot requires the following URLs not to be cached, when/if you are serving Riot from your own webserver:
+```
+/config.*.json
+/i18n
+/home
+/sites
+/index.html
+```
+
 Development
 ===========
 
 Before attempting to develop on Riot you **must** read the [developer guide
-for `matrix-react-sdk`](https://github.com/matrix-org/matrix-react-sdk), which
+for `matrix-react-sdk`](https://github.com/matrix-org/matrix-react-sdk#developer-guide), which
 also defines the design, architecture and style for Riot too.
+
+Before starting work on a feature, it's best to ensure your plan aligns well
+with our vision for Riot. Please chat with the team in
+[#riot-dev:matrix.org](https://matrix.to/#/#riot-dev:matrix.org) before you
+start so we can ensure it's something we'd be willing to merge.
 
 You should also familiarise yourself with the ["Here be Dragons" guide
 ](https://docs.google.com/document/d/12jYzvkidrp1h7liEuLIe6BMdU0NUjndUYI971O06ooM)
@@ -279,6 +263,7 @@ yarn install
 yarn start
 ```
 
+
 Wait a few seconds for the initial build to finish; you should see something like:
 ```
 Hash: b0af76309dd56d7275c8
@@ -295,8 +280,28 @@ bundle.css.map   116 kB       0  [emitted]  main
    and rebuilds source files when they change. This development server also
    disables caching, so do NOT use it in production.
 
+Configure the app by copying `config.sample.json` to `config.json` and
+modifying it. See the [configuration docs](docs/config.md) for details.
+
 Open http://127.0.0.1:8080/ in your browser to see your newly built Riot.
 
+**Note**: The build script uses inotify by default on Linux to monitor directories
+for changes. If the inotify watch limit is too low your build will silently fail.
+To avoid this issue, we recommend a limit of at least 128M.
+
+To set a new inotify watch limit, execute:
+
+```
+$ sudo sysctl fs.inotify.max_user_watches=131072
+$ sudo sysctl -p
+```
+
+If you wish, you can make this new limit permanent, by executing:
+
+```
+$ echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
+$ sudo sysctl -p
+```
 ___
 
 When you make changes to `matrix-react-sdk` or `matrix-js-sdk` they should be
@@ -327,6 +332,10 @@ You can also tell karma to run the tests in a loop (every time the source
 changes), in an instance of Chrome on your desktop, with `yarn
 test-multi`. This also gives you the option of running the tests in 'debug'
 mode, which is useful for stepping through the tests in the developer tools.
+
+### End-to-End tests
+
+See [matrix-react-sdk](https://github.com/matrix-org/matrix-react-sdk/#end-to-end-tests) how to run the end-to-end tests.
 
 Translations
 ============
