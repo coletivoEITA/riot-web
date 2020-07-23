@@ -7,10 +7,9 @@ to `Settings->Labs`. This list is non-exhaustive and subject to change, chat in
 **Be warned! Labs features are not finalised, they may be fragile, they may change, they may be
 dropped. Ask in the room if you are unclear about any details here.**
 
-## Font scaling (`feature_font_scaling`)
+## New spinner design (`feature_new_spinner`)
 
-Enables font scaling options for accessibility. To alter the scale check the
-appearance tab in settings.
+Replaces the old spinner image with a new, svg-based one featuring a sleeker design.
 
 ## Message pinning (`feature_pinning`)
 
@@ -96,14 +95,19 @@ theme definition.
 
 For some sample themes, check out [aaronraimist/riot-web-themes](https://github.com/aaronraimist/riot-web-themes).
 
-## New room list (`feature_new_room_list`) (in development)
+## New room list
 
 A complete rewrite of the room list is underway to increase performance, stability,
-and general usability. This is expected to take a while to complete and as such might
-be missing critical features - please use at your own risk, though do report bugs!
+and general usability.
 
-## IRC message layout (`feature_irc_ui`)
+In the event the new room list needs to be disabled, add this to your config.json:
+```json
+{
+    "settingDefaults": {
+        "feature_new_room_list": false
+    }
+}
+```
 
-Adds an option to change the message layout to an IRC style ` timestamp | avatar
-| name | message `
+**Note**: In a future release the new room list will not be optional.
 
