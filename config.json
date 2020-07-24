@@ -2,7 +2,7 @@
     "default_server_config": {
         "m.homeserver": {
             "base_url": "https://chat.rios.org.br",
-            "server_name": "matrix eita"
+            "server_name": "Matrix EITA"
         },
         "m.identity_server": {
             "base_url": "https://vector.im"
@@ -13,6 +13,23 @@
     "disable_login_language_selector": false,
     "disable_3pid_login": true,
     "brand": "RIOS Chat",
+    "branding": {
+        "authHeaderLogoUrl": "themes/rios/img/logos/logo_rios.svg",
+        "authFooterLinks": [{
+              "text": "RIOS",
+              "url": "https://rios.org.br"
+            }, {
+              "text": "eita",
+              "url": "https://eita.coop.br"
+            }, {
+              "text": "gitlab",
+              "url": "https://gitlab.com/eita/rios"
+            }
+        ]
+    },
+    "embeddedPages": {
+        "welcomeUrl": "themes/rios/welcome.html"
+    },
     "integrations_ui_url": "https://scalar.vector.im/",
     "integrations_rest_url": "https://scalar.vector.im/api",
     "integrations_jitsi_widget_url": "https://scalar.vector.im/api/widgets/jitsi.html",
