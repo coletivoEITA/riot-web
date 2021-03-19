@@ -23,10 +23,8 @@ import React from 'react';
 // this incidentally means we can forget our React imports in JSX files without penalty.
 window.React = React;
 
-import url from 'url';
 import * as sdk from 'matrix-react-sdk';
 import PlatformPeg from 'matrix-react-sdk/src/PlatformPeg';
-import * as VectorConferenceHandler from 'matrix-react-sdk/src/VectorConferenceHandler';
 import {_td, newTranslatableError} from 'matrix-react-sdk/src/languageHandler';
 import AutoDiscoveryUtils from 'matrix-react-sdk/src/utils/AutoDiscoveryUtils';
 import {AutoDiscovery} from "matrix-js-sdk/src/autodiscovery";
@@ -34,7 +32,6 @@ import * as Lifecycle from "matrix-react-sdk/src/Lifecycle";
 import type MatrixChatType from "matrix-react-sdk/src/components/structures/MatrixChat";
 import {MatrixClientPeg} from 'matrix-react-sdk/src/MatrixClientPeg';
 import SdkConfig from "matrix-react-sdk/src/SdkConfig";
-import CallHandler from 'matrix-react-sdk/src/CallHandler';
 
 import {parseQs, parseQsFromFragment} from './url_utils';
 import VectorBasePlatform from "./platform/VectorBasePlatform";
@@ -71,11 +68,16 @@ function onHashChange(ev: HashChangeEvent) {
 
 // This will be called whenever the SDK changes screens,
 // so a web page can update the URL bar appropriately.
-function onNewScreen(screen: string) {
+function onNewScreen(screen: string, replaceLast = false) {
     console.log("newscreen " + screen);
     const hash = '#/' + screen;
     lastLocationHashSet = hash;
-    window.location.hash = hash;
+
+    if (replaceLast) {
+        window.location.replace(hash);
+    } else {
+        window.location.assign(hash);
+    }
 }
 
 // We use this to work out what URL the SDK should
@@ -117,11 +119,12 @@ function onTokenLoginCompleted() {
     // if we did a token login, we're now left with the token, hs and is
     // url as query params in the url; a little nasty but let's redirect to
     // clear them.
-    const parsedUrl = url.parse(window.location.href);
-    parsedUrl.search = "";
-    const formatted = url.format(parsedUrl);
-    console.log(`Redirecting to ${formatted} to drop loginToken from queryparams`);
-    window.location.href = formatted;
+    const url = new URL(window.location.href);
+
+    url.searchParams.delete("loginToken");
+
+    console.log(`Redirecting to ${url.href} to drop loginToken from queryparams`);
+    window.history.replaceState(null, "", url.href);
 }
 
 export async function loadApp(fragParams: {}) {
@@ -136,7 +139,6 @@ export async function loadApp(fragParams: {}) {
         throw newTranslatableError(_td("Missing indexeddb worker script!"));
     }
     MatrixClientPeg.setIndexedDbWorkerScript(vectorIndexeddbWorkerScript);
-    CallHandler.setConferenceHandler(VectorConferenceHandler);
 
     window.addEventListener('hashchange', onHashChange);
 
@@ -155,7 +157,6 @@ export async function loadApp(fragParams: {}) {
     return <MatrixChat
         onNewScreen={onNewScreen}
         makeRegistrationUrl={makeRegistrationUrl}
-        ConferenceHandler={VectorConferenceHandler}
         config={config}
         realQueryParams={params}
         startingFragmentQueryParams={fragParams}
@@ -235,7 +236,7 @@ async function verifyServerConfig() {
 
         validatedConfig = AutoDiscoveryUtils.buildValidatedConfigFromDiscovery(serverName, discoveryResult, true);
     } catch (e) {
-        const {hsUrl, isUrl, userId} = Lifecycle.getLocalStorageSessionVars();
+        const {hsUrl, isUrl, userId} = await Lifecycle.getStoredSessionVars();
         if (hsUrl && userId) {
             console.error(e);
             console.warn("A session was found - suppressing config error and using the session's homeserver");

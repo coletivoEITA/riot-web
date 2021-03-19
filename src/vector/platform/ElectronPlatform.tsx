@@ -1,9 +1,8 @@
 /*
 Copyright 2016 Aviral Dasgupta
 Copyright 2016 OpenMarket Ltd
-Copyright 2018 New Vector Ltd
 Copyright 2019 Michael Telatynski <7t3chguy@gmail.com>
-Copyright 2020 The Matrix.org Foundation C.I.C.
+Copyright 2018 - 2021 New Vector Ltd
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,7 +26,7 @@ import BaseEventIndexManager, {
     MatrixEvent,
     MatrixProfile,
     SearchArgs,
-    SearchResult
+    SearchResult,
 } from 'matrix-react-sdk/src/indexing/BaseEventIndexManager';
 import dis from 'matrix-react-sdk/src/dispatcher/dispatcher';
 import {_t, _td} from 'matrix-react-sdk/src/languageHandler';
@@ -49,7 +48,7 @@ import {CheckUpdatesPayload} from "matrix-react-sdk/src/dispatcher/payloads/Chec
 import ToastStore from "matrix-react-sdk/src/stores/ToastStore";
 import GenericExpiringToast from "matrix-react-sdk/src/components/views/toasts/GenericExpiringToast";
 
-const ipcRenderer = window.ipcRenderer;
+const electron = window.electron;
 const isMac = navigator.platform.toUpperCase().includes('MAC');
 
 function platformFriendlyName(): string {
@@ -74,7 +73,7 @@ function platformFriendlyName(): string {
 function _onAction(payload: ActionPayload) {
     // Whitelist payload actions, no point sending most across
     if (['call_state'].includes(payload.action)) {
-        ipcRenderer.send('app_onAction', payload);
+        electron.send('app_onAction', payload);
     }
 }
 
@@ -99,12 +98,12 @@ interface IPCPayload {
 
 class SeshatIndexManager extends BaseEventIndexManager {
     private pendingIpcCalls: Record<number, { resolve, reject }> = {};
-    private nextIpcCallId: number = 0;
+    private nextIpcCallId = 0;
 
     constructor() {
         super();
 
-        ipcRenderer.on('seshatReply', this._onIpcReply);
+        electron.on('seshatReply', this._onIpcReply);
     }
 
     async _ipcCall(name: string, ...args: any[]): Promise<any> {
@@ -112,7 +111,7 @@ class SeshatIndexManager extends BaseEventIndexManager {
         const ipcCallId = ++this.nextIpcCallId;
         return new Promise((resolve, reject) => {
             this.pendingIpcCalls[ipcCallId] = {resolve, reject};
-            window.ipcRenderer.send('seshat', {id: ipcCallId, name, args});
+            window.electron.send('seshat', {id: ipcCallId, name, args});
         });
     }
 
@@ -140,8 +139,8 @@ class SeshatIndexManager extends BaseEventIndexManager {
         return this._ipcCall('supportsEventIndexing');
     }
 
-    async initEventIndex(): Promise<void> {
-        return this._ipcCall('initEventIndex');
+    async initEventIndex(userId: string, deviceId: string): Promise<void> {
+        return this._ipcCall('initEventIndex', userId, deviceId);
     }
 
     async addEventToIndex(ev: MatrixEvent, profile: MatrixProfile): Promise<void> {
@@ -216,7 +215,7 @@ class SeshatIndexManager extends BaseEventIndexManager {
 export default class ElectronPlatform extends VectorBasePlatform {
     private eventIndexManager: BaseEventIndexManager = new SeshatIndexManager();
     private pendingIpcCalls: Record<number, { resolve, reject }> = {};
-    private nextIpcCallId: number = 0;
+    private nextIpcCallId = 0;
     // this is the opaque token we pass to the HS which when we get it in our callback we can resolve to a profile
     private ssoID: string = randomString(32);
 
@@ -230,7 +229,7 @@ export default class ElectronPlatform extends VectorBasePlatform {
             false if there is not
             or the error if one is encountered
          */
-        ipcRenderer.on('check_updates', (event, status) => {
+        electron.on('check_updates', (event, status) => {
             dis.dispatch<CheckUpdatesPayload>({
                 action: Action.CheckUpdates,
                 ...getUpdateCheckStatus(status),
@@ -238,21 +237,21 @@ export default class ElectronPlatform extends VectorBasePlatform {
         });
 
         // try to flush the rageshake logs to indexeddb before quit.
-        ipcRenderer.on('before-quit', function() {
-            console.log('riot-desktop closing');
+        electron.on('before-quit', function() {
+            console.log('element-desktop closing');
             rageshake.flush();
         });
 
-        ipcRenderer.on('ipcReply', this._onIpcReply);
-        ipcRenderer.on('update-downloaded', this.onUpdateDownloaded);
+        electron.on('ipcReply', this._onIpcReply);
+        electron.on('update-downloaded', this.onUpdateDownloaded);
 
-        ipcRenderer.on('preferences', () => {
+        electron.on('preferences', () => {
             dis.fire(Action.ViewUserSettings);
         });
 
-        ipcRenderer.on('userDownloadCompleted', (ev, {path, name}) => {
+        electron.on('userDownloadCompleted', (ev, {path, name}) => {
             const onAccept = () => {
-                ipcRenderer.send('userDownloadOpen', {path});
+                electron.send('userDownloadOpen', {path});
             };
 
             ToastStore.sharedInstance().addOrReplaceToast({
@@ -324,11 +323,21 @@ export default class ElectronPlatform extends VectorBasePlatform {
         return 'Electron Platform'; // no translation required: only used for analytics
     }
 
+    /**
+     * Return true if platform supports multi-language
+     * spell-checking, otherwise false.
+     */
+    supportsMultiLanguageSpellCheck(): boolean {
+        // Electron uses OS spell checking on macOS, so no need for in-app options
+        if (isMac) return false;
+        return true;
+    }
+
     setNotificationCount(count: number) {
         if (this.notificationCount === count) return;
         super.setNotificationCount(count);
 
-        ipcRenderer.send('setBadgeCount', count);
+        electron.send('setBadgeCount', count);
     }
 
     supportsNotifications(): boolean {
@@ -371,11 +380,7 @@ export default class ElectronPlatform extends VectorBasePlatform {
     }
 
     loudNotification(ev: Event, room: Object) {
-        ipcRenderer.send('loudNotification');
-    }
-
-    clearNotification(notif: Notification) {
-        notif.close();
+        electron.send('loudNotification');
     }
 
     async getAppVersion(): Promise<string> {
@@ -427,14 +432,14 @@ export default class ElectronPlatform extends VectorBasePlatform {
 
     startUpdateCheck() {
         super.startUpdateCheck();
-        ipcRenderer.send('check_updates');
+        electron.send('check_updates');
     }
 
     installUpdate() {
         // IPC to the main process to install the update, since quitAndInstall
         // doesn't fire the before-quit event so the main process needs to know
         // it should exit.
-        ipcRenderer.send('install_update');
+        electron.send('install_update');
     }
 
     getDefaultDeviceDisplayName(): string {
@@ -464,7 +469,7 @@ export default class ElectronPlatform extends VectorBasePlatform {
         const ipcCallId = ++this.nextIpcCallId;
         return new Promise((resolve, reject) => {
             this.pendingIpcCalls[ipcCallId] = {resolve, reject};
-            window.ipcRenderer.send('ipcCall', {id: ipcCallId, name, args});
+            window.electron.send('ipcCall', {id: ipcCallId, name, args});
             // Maybe add a timeout to these? Probably not necessary.
         });
     }
@@ -493,11 +498,19 @@ export default class ElectronPlatform extends VectorBasePlatform {
         return this.eventIndexManager;
     }
 
-    setLanguage(preferredLangs: string[]) {
-        this._ipcCall('setLanguage', preferredLangs).catch(error => {
-            console.log("Failed to send setLanguage IPC to Electron");
+    setSpellCheckLanguages(preferredLangs: string[]) {
+        this._ipcCall('setSpellCheckLanguages', preferredLangs).catch(error => {
+            console.log("Failed to send setSpellCheckLanguages IPC to Electron");
             console.error(error);
         });
+    }
+
+    async getSpellCheckLanguages(): Promise<string[]> {
+        return this._ipcCall('getSpellCheckLanguages');
+    }
+
+    async getAvailableSpellCheckLanguages(): Promise<string[]> {
+        return this._ipcCall('getAvailableSpellCheckLanguages');
     }
 
     getSSOCallbackUrl(fragmentAfterLogin: string): URL {
@@ -507,9 +520,9 @@ export default class ElectronPlatform extends VectorBasePlatform {
         return url;
     }
 
-    startSingleSignOn(mxClient: MatrixClient, loginType: "sso" | "cas", fragmentAfterLogin: string) {
+    startSingleSignOn(mxClient: MatrixClient, loginType: "sso" | "cas", fragmentAfterLogin: string, idpId?: string) {
         // this will get intercepted by electron-main will-navigate
-        super.startSingleSignOn(mxClient, loginType, fragmentAfterLogin);
+        super.startSingleSignOn(mxClient, loginType, fragmentAfterLogin, idpId);
         Modal.createTrackedDialog('Electron', 'SSO', InfoDialog, {
             title: _t("Go to your browser to complete Sign In"),
             description: <Spinner />,

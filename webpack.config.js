@@ -8,19 +8,25 @@ const webpack = require("webpack");
 let og_image_url = process.env.RIOT_OG_IMAGE_URL;
 if (!og_image_url) og_image_url = 'https://app.element.io/themes/element/img/logos/opengraph.png';
 
+const additionalPlugins = [
+    // This is where you can put your customisation replacements.
+];
+
 module.exports = (env, argv) => {
     if (process.env.CI_PACKAGE) {
         // Don't run minification for CI builds (this is only set for runs on develop)
+        // We override this via environment variable to avoid duplicating the scripts
+        // in `package.json` just for a different mode.
         argv.mode = "development";
     }
 
     const development = {};
-    if (argv.mode !== "production") {
+    if (argv.mode === "production") {
+        development['devtool'] = 'nosources-source-map';
+    } else {
         // This makes the sourcemaps human readable for developers. We use eval-source-map
         // because the plain source-map devtool ruins the alignment.
         development['devtool'] = 'eval-source-map';
-    } else {
-        development['devtool'] = 'nosources-source-map';
     }
 
     // Resolve the directories for the react-sdk and js-sdk for later use. We resolve these early so we
@@ -225,6 +231,7 @@ module.exports = (env, argv) => {
                                     require("postcss-easings")(),
                                     require("postcss-strip-inline-comments")(),
                                     require("postcss-hexrgba")(),
+                                    require("postcss-calc")({warnWhenCannotResolve: true}),
 
                                     // It's important that this plugin is last otherwise we end
                                     // up with broken CSS.
@@ -247,7 +254,7 @@ module.exports = (env, argv) => {
                 },
                 {
                     // cache-bust languages.json file placed in
-                    // riot-web/webapp/i18n during build by copy-res.js
+                    // element-web/webapp/i18n during build by copy-res.js
                     test: /\.*languages.json$/,
                     type: "javascript/auto",
                     loader: 'file-loader',
@@ -267,12 +274,12 @@ module.exports = (env, argv) => {
                             options: {
                                 esModule: false,
                                 name: '[name].[hash:7].[ext]',
-                                outputPath: getImgOutputPath,
+                                outputPath: getAssetOutputPath,
                                 publicPath: function(url, resourcePath) {
                                     // CSS image usages end up in the `bundles/[hash]` output
                                     // directory, so we adjust the final path to navigate up
                                     // twice.
-                                    const outputPath = getImgOutputPath(url, resourcePath);
+                                    const outputPath = getAssetOutputPath(url, resourcePath);
                                     return toPublicPath(path.join("../..", outputPath));
                                 },
                             },
@@ -283,9 +290,9 @@ module.exports = (env, argv) => {
                             options: {
                                 esModule: false,
                                 name: '[name].[hash:7].[ext]',
-                                outputPath: getImgOutputPath,
+                                outputPath: getAssetOutputPath,
                                 publicPath: function(url, resourcePath) {
-                                    const outputPath = getImgOutputPath(url, resourcePath);
+                                    const outputPath = getAssetOutputPath(url, resourcePath);
                                     return toPublicPath(outputPath);
                                 },
                             },
@@ -296,12 +303,6 @@ module.exports = (env, argv) => {
         },
 
         plugins: [
-            new webpack.DefinePlugin({
-                'process.env': {
-                    NODE_ENV: JSON.stringify(process.env.NODE_ENV),
-                },
-            }),
-
             // This exports our CSS using the splitChunks and loaders above.
             new MiniCssExtractPlugin({
                 filename: 'bundles/[hash]/[name].css',
@@ -360,6 +361,8 @@ module.exports = (env, argv) => {
                 minify: argv.mode === 'production',
                 chunks: ['usercontent'],
             }),
+
+            ...additionalPlugins,
         ],
 
         output: {
@@ -396,15 +399,25 @@ module.exports = (env, argv) => {
 
 /**
  * Merge assets found via CSS and imports into a single tree, while also preserving
- * directories under `res`.
+ * directories under e.g. `res` or similar.
  *
  * @param {string} url The adjusted name of the file, such as `warning.1234567.svg`.
  * @param {string} resourcePath The absolute path to the source file with unmodified name.
  * @return {string} The returned paths will look like `img/warning.1234567.svg`.
  */
-function getImgOutputPath(url, resourcePath) {
-    const prefix = /^.*[/\\]res[/\\]/;
-    const outputDir = path.dirname(resourcePath).replace(prefix, "");
+function getAssetOutputPath(url, resourcePath) {
+    // `res` is the parent dir for our own assets in various layers
+    // `dist` is the parent dir for KaTeX assets
+    const prefix = /^.*[/\\](dist|res)[/\\]/;
+    if (!resourcePath.match(prefix)) {
+        throw new Error(`Unexpected asset path: ${resourcePath}`);
+    }
+    let outputDir = path.dirname(resourcePath).replace(prefix, "");
+    if (resourcePath.includes("KaTeX")) {
+        // Add a clearly named directory segment, rather than leaving the KaTeX
+        // assets loose in each asset type directory.
+        outputDir = path.join(outputDir, "KaTeX");
+    }
     return path.join(outputDir, path.basename(url));
 }
 

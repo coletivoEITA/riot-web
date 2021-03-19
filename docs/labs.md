@@ -1,11 +1,23 @@
 # Labs features
 
-If Labs is enabled in the [Riot config](config.md), you can enable some of these features by going
+If Labs is enabled in the [Element config](config.md), you can enable some of these features by going
 to `Settings->Labs`. This list is non-exhaustive and subject to change, chat in
-[#riot-web:matrix.org](https://matrix.to/#/#riot-web:matrix.org) for more information.
+[#element-web:matrix.org](https://matrix.to/#/#element-web:matrix.org) for more information.
 
 **Be warned! Labs features are not finalised, they may be fragile, they may change, they may be
 dropped. Ask in the room if you are unclear about any details here.**
+
+## Matrix Spaces [MSC1772](https://github.com/matrix-org/matrix-doc/pull/1772) support (`feature_spaces`)
+
+Enables showing, using, creating, and managing spaces. Create Spaces from the all new Space Panel (to left of Room List).
+
+Incompatible with (will disable) `feature_custom_tags`, `feature_communities_v2_prototypes` and stable Communities/Groups support.
+
+Still in heavy development.
+
+## Render LaTeX maths in messages (`feature_latex_maths`)
+
+Enables rendering of LaTeX maths in messages using [KaTeX](https://katex.org/). LaTeX between single dollar-signs is interpreted as inline maths and double dollar-signs as display maths (i.e. centred on its own line).
 
 ## New spinner design (`feature_new_spinner`)
 
@@ -26,7 +38,7 @@ your avatar next to the message composer.
 An experimental approach for dealing with custom tags. Custom tags will appear in the bottom portion
 of the community filter panel.
 
-Setting custom tags is not supported by Riot.
+Setting custom tags is not supported by Element.
 
 ## Render simple counters in room header (`feature_state_counters`)
 
@@ -53,7 +65,7 @@ That's it. Now should see your new counter under the header.
 
 ## Multiple integration managers (`feature_many_integration_managers`)
 
-Exposes a way to access all the integration managers known to Riot. This is an implementation of [MSC1957](https://github.com/matrix-org/matrix-doc/pull/1957).
+Exposes a way to access all the integration managers known to Element. This is an implementation of [MSC1957](https://github.com/matrix-org/matrix-doc/pull/1957).
 
 ## New ways to ignore people (`feature_mjolnir`)
 
@@ -88,26 +100,26 @@ person is online.
 
 ## Custom themes (`feature_custom_themes`)
 
-Custom themes are possible through Riot's [theme support](./theming.md), though
-normally these themes need to be defined in the config for Riot. This labs flag
+Custom themes are possible through Element's [theme support](./theming.md), though
+normally these themes need to be defined in the config for Element. This labs flag
 adds an ability for end users to add themes themselves by using a URL to the JSON
 theme definition.
 
-For some sample themes, check out [aaronraimist/riot-web-themes](https://github.com/aaronraimist/riot-web-themes).
+For some sample themes, check out [aaronraimist/element-themes](https://github.com/aaronraimist/element-themes).
 
-## New room list
+## Message preview tweaks
 
-A complete rewrite of the room list is underway to increase performance, stability,
-and general usability.
+To enable message previews for reactions in all rooms, enable `feature_roomlist_preview_reactions_all`.
+To enable message previews for reactions in DMs, enable `feature_roomlist_preview_reactions_dms`, ignored when it is enabled for all rooms.
 
-In the event the new room list needs to be disabled, add this to your config.json:
-```json
-{
-    "settingDefaults": {
-        "feature_new_room_list": false
-    }
-}
-```
+## Communities v2 prototyping (`feature_communities_v2_prototypes`) [In Development]
 
-**Note**: In a future release the new room list will not be optional.
+**This is a highly experimental implementation for parts of the communities v2 experience.** It does not
+represent what communities v2 will look/feel like and can/will change without notice. Due to the early
+stages this feature is in and the requirement for a compatible homeserver, we will not be accepting issues
+or feedback for this functionality at this time.
 
+## Dehydrated devices (`feature_dehydration`)
+
+Allows users to receive encrypted messages by creating a device that is stored
+encrypted on the server, as described in [MSC2697](https://github.com/matrix-org/matrix-doc/pull/2697).
